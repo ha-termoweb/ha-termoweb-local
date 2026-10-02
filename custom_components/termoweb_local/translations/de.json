@@ -1,0 +1,102 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Termoweb Local",
+        "description": "Direkte Verbindung zum Funkmodul, das mit deinen Sun Ray Heizkörpern spricht, ohne Gateway oder Cloud dazwischen.",
+        "data": {
+          "serial_url": "Funkverbindung",
+          "station_id": "Stations-Id"
+        },
+        "data_description": {
+          "serial_url": "Wo sich der nanoCUL868 Funkstick befindet. An diesem Home Assistant Rechner angeschlossen: sein Gerätepfad, zum Beispiel /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_XXXXXXXX-if00-port0. An einem anderen Rechner angeschlossen, der ihn mit ser2net im Netzwerk freigibt: socket:// gefolgt von Adresse und Port dieses Rechners, zum Beispiel socket://192.0.2.35:5555.",
+          "station_id": "Die Funkadresse, die diese Integration als Gateway der Heizkörper verwendet. Die Heizkörper sind mit 01 gekoppelt, also 01 beibehalten, außer du weißt genau, warum ein anderer Wert nötig ist."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Die serielle Schnittstelle konnte nicht geöffnet werden, oder der Stick hat weder ein Start-Banner noch eine Q-Antwort gesendet. URL prüfen und sicherstellen, dass kein anderer Prozess (nano_rx.py, ein weiterer NanoCul) die Schnittstelle bereits belegt.",
+      "invalid_station_id": "Die Stations-Id muss eine oder zwei Hexadezimalstellen sein (00-FF)."
+    },
+    "abort": {
+      "already_configured": "Diese serielle URL ist bereits eingerichtet."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Termoweb Local Einstellungen",
+        "description": "Heizkörper werden über die Schaltflächen \"Nach Heizkörpern suchen\" oder \"Heizkörper koppeln\" am Stationsgerät hinzugefügt (oder automatisch bei der Einrichtung); einen umbenennen über seine eigene Geräte- oder Entitätsseite, und einen entfernen, indem sein Gerät gelöscht wird.",
+        "data": {
+          "poll_interval": "Abfrageintervall (Sekunden)",
+          "dev_id": "Geräte-Id",
+          "heater_association_hex": "EB-Zuordnungswert des Heizkörpers (id:hex, durch Komma getrennt)",
+          "pair_heater_seconds": "Zeitfenster der Heizkörper-Koppeln-Schaltfläche (Sekunden)"
+        },
+        "data_description": {
+          "poll_interval": "Wie oft jeder Heizkörper im Ruhezustand abgefragt wird (Standard 300 s, wie das Gateway; docs/PROTOCOL.md Abschnitt 6).",
+          "dev_id": "Geräte-Id, verwendet in den eindeutigen Entitäts-Ids und im Geräteregister. Für Kontinuität bei einer Umstellung auf die dev_id der Cloud-Integration setzen.",
+          "heater_association_hex": "Optionale Einträge 'id:hexwert' (die Id, ein Doppelpunkt und die 18 Hexadezimalzeichen des Zuordnungswerts); ein Heizkörper ohne Eintrag hier überspringt dieses Frame einfach beim Start der Station.",
+          "pair_heater_seconds": "Wie lange das Erkennungsfenster der Schaltfläche \"Heizkörper koppeln\" geöffnet bleibt (Standard 120 s)."
+        }
+      }
+    },
+    "error": {
+      "invalid_poll_interval": "Das Abfrageintervall muss zwischen 30 und 3600 Sekunden liegen.",
+      "invalid_association": "Die Heizkörperzuordnung muss aus Einträgen 'id:hexwert' bestehen (die Id, ein Doppelpunkt und die 18 Hexadezimalzeichen des Zuordnungswerts), durch Komma getrennt.",
+      "invalid_dev_id": "Die Geräte-Id darf nicht leer sein.",
+      "invalid_pair_seconds": "Das Kopplungsfenster muss zwischen 0 und 600 Sekunden liegen."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "room_temperature": {
+        "name": "Temperatur"
+      },
+      "power_provisional": {
+        "name": "Leistung"
+      },
+      "energy": {
+        "name": "Energie"
+      }
+    }
+  },
+  "services": {
+    "poll_now": {
+      "name": "Jetzt abfragen",
+      "description": "Sendet sofort ein Abfrage-Frame an den ausgewählten Heizkörper, statt auf den normalen Zyklus des Koordinators zu warten."
+    },
+    "sync_clock": {
+      "name": "Uhr synchronisieren",
+      "description": "Sendet das EB Uhrzeit-Synchronisierungs-Frame sofort an den ausgewählten Heizkörper, statt auf die tägliche Synchronisierung zu warten."
+    },
+    "set_schedule": {
+      "name": "Zeitplan festlegen",
+      "description": "Schreibt das Wochenprogramm auf den ausgewählten Heizkörper und liest es anschließend zurück, um zu bestätigen, was gespeichert wurde."
+    },
+    "set_preset_temperatures": {
+      "name": "Voreinstellungstemperaturen festlegen",
+      "description": "Vom Funkprotokoll noch nicht unterstützt; löst immer einen Fehler aus."
+    },
+    "set_acm_preset": {
+      "name": "Speicherheizkörper-Voreinstellung festlegen",
+      "description": "Nur für Speicherheizkörper-Knoten, keiner installiert; löst immer einen Fehler aus."
+    },
+    "start_boost": {
+      "name": "Boost starten",
+      "description": "Startet Boost am ausgewählten Heizkörper; die Dauer wird durch die eigene Boost-Zeit-Einstellung des Heizkörpers festgelegt, nicht durch das Minutenfeld."
+    },
+    "cancel_boost": {
+      "name": "Boost abbrechen",
+      "description": "Bricht einen laufenden Boost am ausgewählten Heizkörper ab."
+    },
+    "import_energy_history": {
+      "name": "Energieverlauf importieren",
+      "description": "Nur Cloud, keine lokale Energiequelle; löst immer einen Fehler aus."
+    },
+    "ws_debug_probe": {
+      "name": "WS-Debug-Sonde",
+      "description": "Nur Cloud, hier besteht keine Websocket-Verbindung; löst immer einen Fehler aus."
+    }
+  }
+}

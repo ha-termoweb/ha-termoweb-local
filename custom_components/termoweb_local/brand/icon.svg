@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Termoweb Local">
+  <title>A radiator driven directly over a sub-GHz radio link</title>
+
+  <rect width="256" height="256" rx="56" fill="#15242E"/>
+
+  <g transform="translate(4 -2)">
+    <g fill="#FF9C33">
+      <rect x="24" y="52" width="124" height="14" rx="7"/>
+      <rect x="24" y="180" width="124" height="14" rx="7"/>
+      <rect x="32" y="60" width="18" height="126" rx="9"/>
+      <rect x="62" y="60" width="18" height="126" rx="9"/>
+      <rect x="92" y="60" width="18" height="126" rx="9"/>
+      <rect x="122" y="60" width="18" height="126" rx="9"/>
+      <rect x="44" y="194" width="12" height="14" rx="4"/>
+      <rect x="116" y="194" width="12" height="14" rx="4"/>
+    </g>
+    <g fill="none" stroke="#3FD0DE" stroke-width="15" stroke-linecap="round">
+      <path d="M156.34 107.52 A25 25 0 0 1 156.34 148.48"/>
+      <path d="M170.68 87.04 A50 50 0 0 1 170.68 168.96"/>
+      <path d="M185.02 66.56 A75 75 0 0 1 185.02 189.44"/>
+    </g>
+  </g>
+</svg>

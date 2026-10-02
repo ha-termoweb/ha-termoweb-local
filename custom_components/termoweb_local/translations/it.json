@@ -1,0 +1,102 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Termoweb Local",
+        "description": "Connessione diretta alla radio che comunica con i tuoi termosifoni Sun Ray, senza gateway né cloud nel mezzo.",
+        "data": {
+          "serial_url": "Connessione radio",
+          "station_id": "Id stazione"
+        },
+        "data_description": {
+          "serial_url": "Dove si trova la chiavetta radio nanoCUL868. Collegata a questa macchina Home Assistant: il suo percorso dispositivo, ad esempio /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_XXXXXXXX-if00-port0. Collegata a un'altra macchina che la condivide in rete con ser2net: socket:// seguito dall'indirizzo e dalla porta di quella macchina, ad esempio socket://192.0.2.35:5555.",
+          "station_id": "L'indirizzo radio che questa integrazione usa come gateway dei termosifoni. I termosifoni sono associati a 01, quindi mantieni 01 a meno che tu non sappia perché ti serve un altro valore."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Impossibile aprire la porta seriale, oppure la chiavetta non ha restituito né il banner di avvio né una risposta Q. Controlla l'URL e che nessun altro processo (nano_rx.py, un altro NanoCul) stia già occupando la porta.",
+      "invalid_station_id": "L'id stazione deve essere una o due cifre esadecimali (00-FF)."
+    },
+    "abort": {
+      "already_configured": "Questo URL seriale è già configurato."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opzioni di Termoweb Local",
+        "description": "I termosifoni si aggiungono con i pulsanti \"Cerca termosifoni\" o \"Associa termosifone\" sul dispositivo della stazione (oppure automaticamente, durante la configurazione); rinominane uno dalla sua pagina di dispositivo o entità, e rimuovine uno eliminando il suo dispositivo.",
+        "data": {
+          "poll_interval": "Intervallo di interrogazione (secondi)",
+          "dev_id": "Id dispositivo",
+          "heater_association_hex": "Valore di associazione EB del termosifone (id:hex, separati da virgole)",
+          "pair_heater_seconds": "Finestra del pulsante di associazione termosifone (secondi)"
+        },
+        "data_description": {
+          "poll_interval": "Con quale frequenza ogni termosifone viene interrogato a riposo (300 s di default, come il gateway; docs/PROTOCOL.md sezione 6).",
+          "dev_id": "Id dispositivo usato negli id univoci delle entità e nel registro dispositivi. Impostare il dev_id dell'integrazione cloud per garantire continuità durante una migrazione.",
+          "heater_association_hex": "Voci opzionali 'id:valorehex' (l'id, i due punti e i 18 caratteri esadecimali del valore di associazione); un termosifone senza una voce qui salta semplicemente questo frame all'avvio della stazione.",
+          "pair_heater_seconds": "Per quanto tempo resta aperta la finestra di rilevamento del pulsante \"Associa termosifone\" (120 s di default)."
+        }
+      }
+    },
+    "error": {
+      "invalid_poll_interval": "L'intervallo di interrogazione deve essere tra 30 e 3600 secondi.",
+      "invalid_association": "L'associazione del termosifone deve essere composta da voci 'id:valorehex' (l'id, i due punti e i 18 caratteri esadecimali del valore di associazione), separate da virgole.",
+      "invalid_dev_id": "L'id dispositivo non può essere vuoto.",
+      "invalid_pair_seconds": "La finestra di associazione termosifone deve essere tra 0 e 600 secondi."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "room_temperature": {
+        "name": "Temperatura"
+      },
+      "power_provisional": {
+        "name": "Potenza"
+      },
+      "energy": {
+        "name": "Energia"
+      }
+    }
+  },
+  "services": {
+    "poll_now": {
+      "name": "Interroga ora",
+      "description": "Invia subito un frame di interrogazione al termosifone indicato invece di attendere il ciclo normale del coordinatore."
+    },
+    "sync_clock": {
+      "name": "Sincronizza orologio",
+      "description": "Invia subito il frame EB di sincronizzazione orario al termosifone indicato invece di attendere la sincronizzazione giornaliera."
+    },
+    "set_schedule": {
+      "name": "Imposta programmazione",
+      "description": "Scrive il programma settimanale sul termosifone indicato e lo rilegge per confermare cosa è stato memorizzato."
+    },
+    "set_preset_temperatures": {
+      "name": "Imposta temperature dei preset",
+      "description": "Non ancora supportato dal protocollo radio; genera sempre un errore."
+    },
+    "set_acm_preset": {
+      "name": "Imposta preset accumulatore",
+      "description": "Solo per nodi accumulatore, nessuno installato; genera sempre un errore."
+    },
+    "start_boost": {
+      "name": "Avvia boost",
+      "description": "Avvia il Boost sul termosifone indicato; la durata è fissata dall'impostazione di tempo boost del termosifone stesso, non dal campo minuti."
+    },
+    "cancel_boost": {
+      "name": "Annulla boost",
+      "description": "Annulla un Boost in corso sul termosifone indicato."
+    },
+    "import_energy_history": {
+      "name": "Importa cronologia energia",
+      "description": "Solo cloud, nessuna fonte di energia locale; genera sempre un errore."
+    },
+    "ws_debug_probe": {
+      "name": "Sonda di debug WS",
+      "description": "Solo cloud, qui non esiste connessione websocket; genera sempre un errore."
+    }
+  }
+}

@@ -1,0 +1,189 @@
+poll_now:
+  name: Poll now
+  description: >-
+    Send an immediate on-demand status request (F3 B8, docs/PROTOCOL.md 5.6) to
+    the targeted heater's climate entity, instead of waiting for the
+    coordinator's own cadence.
+  target:
+    entity:
+      domain: climate
+      integration: termoweb_local
+
+sync_clock:
+  name: Sync clock
+  description: >-
+    Send the EB clock-sync frame (docs/PROTOCOL.md 5.6) to the targeted heater's
+    climate entity right now, instead of waiting for the coordinator's daily sync.
+  target:
+    entity:
+      domain: climate
+      integration: termoweb_local
+
+set_schedule:
+  name: Set schedule
+  description: >-
+    Write the weekly program (B2, docs/PROTOCOL.md 5.6/5.7) to the targeted
+    heater and read it back to confirm what was stored.
+  target:
+    entity:
+      domain: climate
+      integration: termoweb_local
+  fields:
+    prog:
+      name: Program
+      description: >-
+        168 hourly slot values (Monday 00:00 first) or 336 half-hourly slot
+        values (Monday 00:00 first), each 0 (cold), 1 (night) or 2 (day). Any
+        other length is rejected.
+      required: true
+      example: "[0, 0, 1, 2, ...]"
+      selector:
+        object: {}
+
+set_preset_temperatures:
+  name: Set preset temperatures
+  description: >-
+    Write the anti-frost/eco/comfort preset temperatures (B6,
+    docs/captures/2026-09-12-x18-s7/notes.md) to the targeted heater. Pass
+    either ptemp (all three, cold/night/day order) or one or more of the
+    named fields; a named field left out keeps that preset's current value.
+  target:
+    entity:
+      domain: climate
+      integration: termoweb_local
+  fields:
+    ptemp:
+      name: Preset temperatures
+      description: >-
+        [cold, night, day], each a multiple of 0.5C, strictly increasing:
+        7.0 <= cold < night < day <= 35.0.
+      example: "[7.0, 18.5, 21.0]"
+      selector:
+        object: {}
+    cold:
+      name: Cold
+      description: >-
+        Anti-frost preset temperature. Must be a multiple of 0.5C, at least
+        7.0C, and at least 0.5C below the eco preset.
+      selector:
+        number:
+          min: 7
+          max: 35
+          step: 0.5
+    night:
+      name: Night
+      description: >-
+        Eco preset temperature. Must be a multiple of 0.5C, at least 0.5C
+        above the anti-frost preset, and at least 0.5C below the comfort
+        preset.
+      selector:
+        number:
+          min: 7
+          max: 35
+          step: 0.5
+    day:
+      name: Day
+      description: >-
+        Comfort preset temperature. Must be a multiple of 0.5C, at least
+        0.5C above the eco preset, and at most 35.0C.
+      selector:
+        number:
+          min: 7
+          max: 35
+          step: 0.5
+
+set_acm_preset:
+  name: Set accumulator preset
+  description: >-
+    Accumulator nodes only, none installed on this bench system
+    (docs/91-p4-parity-plan.md); always raises.
+  target:
+    entity:
+      domain: climate
+      integration: termoweb_local
+  fields:
+    minutes:
+      name: Minutes
+      description: Boost duration in minutes (60-600, step 60).
+      required: true
+      selector:
+        number:
+          min: 60
+          max: 600
+          step: 60
+    temperature:
+      name: Temperature
+      description: Boost temperature.
+      required: true
+      selector:
+        number:
+          min: 5
+          max: 30
+          step: 0.5
+
+start_boost:
+  name: Start boost
+  description: >-
+    Start Boost on the targeted heater (D2 01, docs/PROTOCOL.md 5.6, X-19
+    2026-09-13). minutes is accepted for cloud-service-shape parity but not
+    sent anywhere: the boost duration (60 minutes on this installation) is
+    the heater's own boost-time setting, not a value this station can set.
+  target:
+    entity:
+      domain: climate
+      integration: termoweb_local
+  fields:
+    minutes:
+      name: Minutes
+      description: Ignored; the boost duration is fixed by the heater's own boost-time setting.
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 1440
+
+cancel_boost:
+  name: Cancel boost
+  description: >-
+    Cancel a running Boost on the targeted heater (D2 00, docs/PROTOCOL.md
+    5.6, X-19 2026-09-13).
+  target:
+    entity:
+      domain: climate
+      integration: termoweb_local
+
+import_energy_history:
+  name: Import energy history
+  description: >-
+    Cloud-only, no local energy source (docs/91-p4-parity-plan.md); always
+    raises.
+  fields:
+    reset_progress:
+      name: Reset progress
+      description: Reset any existing import progress before starting.
+      selector:
+        boolean:
+    max_history_retrieval:
+      name: Max history retrieval (days)
+      description: How many days of history to request.
+      selector:
+        number:
+          min: 1
+          max: 3650
+
+ws_debug_probe:
+  name: WS debug probe
+  description: >-
+    Cloud-only, no websocket connection here (docs/91-p4-parity-plan.md);
+    always raises.
+  fields:
+    entry_id:
+      name: Config entry id
+      description: Config entry to probe.
+      selector:
+        text:
+    dev_id:
+      name: Device id
+      description: Gateway device id to probe.
+      selector:
+        text:

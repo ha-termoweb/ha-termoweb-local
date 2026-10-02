@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv*/
+.pytest_cache/
+firmware/termoweb_rx/*.o
+firmware/termoweb_rx/*.elf
+firmware/termoweb_rx/*.hex
+.vscode/
+.idea/
+.DS_Store

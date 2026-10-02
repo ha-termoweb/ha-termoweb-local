@@ -1,0 +1,102 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Termoweb Local",
+        "description": "Connect to the radio that talks to your Sun Ray heaters directly, with no gateway or cloud in the loop.",
+        "data": {
+          "serial_url": "Radio connection",
+          "station_id": "Station id"
+        },
+        "data_description": {
+          "serial_url": "Where the nanoCUL868 radio stick is. Plugged into this Home Assistant machine: its device path, for example /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_XXXXXXXX-if00-port0. Plugged into another machine that shares it over the network with ser2net: socket:// followed by that machine's address and port, for example socket://192.0.2.35:5555.",
+          "station_id": "The radio address this integration uses as the heaters' gateway. The heaters are paired to 01, so keep 01 unless you know why you need another value."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not open the serial port, or the stick gave no boot banner or Q reply. Check the URL and that no other process (nano_rx.py, another NanoCul) already holds the port.",
+      "invalid_station_id": "Station id must be one or two hex digits (00-FF)."
+    },
+    "abort": {
+      "already_configured": "This serial URL is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Termoweb Local options",
+        "description": "Heaters are added by the \"Scan for heaters\" or \"Pair heater\" buttons on the station device (or automatically, at setup); rename one from its own device or entity page, and remove one by deleting its device.",
+        "data": {
+          "poll_interval": "Poll interval (seconds)",
+          "dev_id": "Device id",
+          "heater_association_hex": "Heater EB association value (id:hex, comma separated)",
+          "pair_heater_seconds": "Pair heater button window (seconds)"
+        },
+        "data_description": {
+          "poll_interval": "How often each heater is polled while idle (default 300s, mirroring the gateway; docs/PROTOCOL.md section 6).",
+          "dev_id": "Device id used in entity unique ids and the device registry. Set it to the cloud integration's own dev_id for continuity across a cutover.",
+          "heater_association_hex": "Optional 'id:hexvalue' entries (the id, a colon and the 18 hex characters of the association value); a heater with no entry here simply skips this frame at station start.",
+          "pair_heater_seconds": "How long the \"Pair heater\" button's discovery window stays open (default 120s)."
+        }
+      }
+    },
+    "error": {
+      "invalid_poll_interval": "Poll interval must be between 30 and 3600 seconds.",
+      "invalid_association": "Heater association must be 'id:hexvalue' entries (the id, a colon and the 18 hex characters of the association value), comma separated.",
+      "invalid_dev_id": "Device id must not be empty.",
+      "invalid_pair_seconds": "Pair heater window must be between 0 and 600 seconds."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "room_temperature": {
+        "name": "Temperature"
+      },
+      "power_provisional": {
+        "name": "Power"
+      },
+      "energy": {
+        "name": "Energy"
+      }
+    }
+  },
+  "services": {
+    "poll_now": {
+      "name": "Poll now",
+      "description": "Send an immediate poll frame to the targeted heater instead of waiting for the coordinator's own cadence."
+    },
+    "sync_clock": {
+      "name": "Sync clock",
+      "description": "Send the EB clock-sync frame to the targeted heater right now instead of waiting for the daily sync."
+    },
+    "set_schedule": {
+      "name": "Set schedule",
+      "description": "Write the weekly program to the targeted heater and read it back to confirm what was stored."
+    },
+    "set_preset_temperatures": {
+      "name": "Set preset temperatures",
+      "description": "Not supported by the radio protocol yet; always raises."
+    },
+    "set_acm_preset": {
+      "name": "Set accumulator preset",
+      "description": "Accumulator nodes only, none installed; always raises."
+    },
+    "start_boost": {
+      "name": "Start boost",
+      "description": "Start Boost on the targeted heater; the duration is fixed by the heater's own boost-time setting, not the minutes field."
+    },
+    "cancel_boost": {
+      "name": "Cancel boost",
+      "description": "Cancel a running Boost on the targeted heater."
+    },
+    "import_energy_history": {
+      "name": "Import energy history",
+      "description": "Cloud-only, no local energy source; always raises."
+    },
+    "ws_debug_probe": {
+      "name": "WS debug probe",
+      "description": "Cloud-only, no websocket connection here; always raises."
+    }
+  }
+}

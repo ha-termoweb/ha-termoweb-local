@@ -1,0 +1,102 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Termoweb Local",
+        "description": "Liga diretamente ao rádio que fala com os teus aquecedores Sun Ray, sem gateway nem nuvem pelo meio.",
+        "data": {
+          "serial_url": "Ligação de rádio",
+          "station_id": "Id da estação"
+        },
+        "data_description": {
+          "serial_url": "Onde está o dongle de rádio nanoCUL868. Ligado a esta máquina do Home Assistant: o caminho do dispositivo, por exemplo /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_XXXXXXXX-if00-port0. Ligado a outra máquina que o partilha na rede com o ser2net: socket:// seguido do endereço e da porta dessa máquina, por exemplo socket://192.0.2.35:5555.",
+          "station_id": "O endereço de rádio que esta integração usa como gateway dos aquecedores. Os aquecedores estão emparelhados com 01, por isso mantém 01 a menos que saibas por que precisas de outro valor."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Não foi possível abrir a porta série, ou o dongle não devolveu o aviso de arranque nem uma resposta Q. Verifica o URL e se nenhum outro processo (nano_rx.py, outro NanoCul) já tem a porta aberta.",
+      "invalid_station_id": "O id da estação tem de ser um ou dois dígitos hexadecimais (00-FF)."
+    },
+    "abort": {
+      "already_configured": "Este URL série já está configurado."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opções do Termoweb Local",
+        "description": "Os aquecedores são adicionados através dos botões \"Procurar aquecedores\" ou \"Emparelhar aquecedor\" no dispositivo da estação (ou automaticamente, na configuração); renomeia um a partir da sua própria página de dispositivo ou entidade, e remove um eliminando o respetivo dispositivo.",
+        "data": {
+          "poll_interval": "Intervalo de sondagem (segundos)",
+          "dev_id": "Id do dispositivo",
+          "heater_association_hex": "Valor de associação EB do aquecedor (id:hex, separados por vírgulas)",
+          "pair_heater_seconds": "Janela do botão de emparelhar aquecedor (segundos)"
+        },
+        "data_description": {
+          "poll_interval": "Com que frequência cada aquecedor é sondado em repouso (300 s por predefinição, tal como o gateway; docs/PROTOCOL.md secção 6).",
+          "dev_id": "Id do dispositivo usado nos id únicos das entidades e no registo de dispositivos. Indique o dev_id da integração na nuvem para dar continuidade numa migração.",
+          "heater_association_hex": "Entradas opcionais 'id:valorhex' (o id, dois pontos e os 18 caracteres hexadecimais do valor de associação); um aquecedor sem entrada aqui salta simplesmente esta trama no arranque da estação.",
+          "pair_heater_seconds": "Durante quanto tempo a janela de deteção do botão \"Emparelhar aquecedor\" fica aberta (120 s por predefinição)."
+        }
+      }
+    },
+    "error": {
+      "invalid_poll_interval": "O intervalo de sondagem tem de estar entre 30 e 3600 segundos.",
+      "invalid_association": "A associação do aquecedor tem de ser composta por entradas 'id:valorhex' (o id, dois pontos e os 18 caracteres hexadecimais do valor de associação), separadas por vírgulas.",
+      "invalid_dev_id": "O id do dispositivo não pode estar vazio.",
+      "invalid_pair_seconds": "A janela de emparelhar aquecedor tem de estar entre 0 e 600 segundos."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "room_temperature": {
+        "name": "Temperatura"
+      },
+      "power_provisional": {
+        "name": "Potência"
+      },
+      "energy": {
+        "name": "Energia"
+      }
+    }
+  },
+  "services": {
+    "poll_now": {
+      "name": "Sondar agora",
+      "description": "Envia de imediato uma trama de sondagem ao aquecedor indicado em vez de esperar pelo ciclo normal do coordenador."
+    },
+    "sync_clock": {
+      "name": "Sincronizar relógio",
+      "description": "Envia já a trama EB de sincronização do relógio ao aquecedor indicado em vez de esperar pela sincronização diária."
+    },
+    "set_schedule": {
+      "name": "Definir programação",
+      "description": "Escreve o programa semanal no aquecedor indicado e volta a lê-lo para confirmar o que ficou guardado."
+    },
+    "set_preset_temperatures": {
+      "name": "Definir temperaturas das predefinições",
+      "description": "Ainda não suportado pelo protocolo de rádio, gera sempre um erro."
+    },
+    "set_acm_preset": {
+      "name": "Definir predefinição do acumulador",
+      "description": "Apenas para nós acumuladores, nenhum instalado, gera sempre um erro."
+    },
+    "start_boost": {
+      "name": "Iniciar boost",
+      "description": "Inicia o Boost no aquecedor indicado; a duração é fixada pela própria definição de tempo de boost do aquecedor, não pelo campo de minutos."
+    },
+    "cancel_boost": {
+      "name": "Cancelar boost",
+      "description": "Cancela um Boost em curso no aquecedor indicado."
+    },
+    "import_energy_history": {
+      "name": "Importar histórico de energia",
+      "description": "Só na nuvem, sem fonte de energia local, gera sempre um erro."
+    },
+    "ws_debug_probe": {
+      "name": "Sonda de depuração WS",
+      "description": "Só na nuvem, aqui não existe ligação websocket, gera sempre um erro."
+    }
+  }
+}

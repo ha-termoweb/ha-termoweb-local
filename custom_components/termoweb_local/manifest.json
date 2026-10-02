@@ -1,0 +1,20 @@
+{
+  "domain": "termoweb_local",
+  "name": "Termoweb Local (unofficial)",
+  "codeowners": [
+    "@andremmfaria"
+  ],
+  "config_flow": true,
+  "dependencies": [
+    "http",
+    "frontend"
+  ],
+  "documentation": "https://github.com/ha-termoweb/ha-termoweb-local",
+  "integration_type": "hub",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/ha-termoweb/ha-termoweb-local/issues",
+  "requirements": [
+    "pyserial>=3.5"
+  ],
+  "version": "0.1.1"
+}

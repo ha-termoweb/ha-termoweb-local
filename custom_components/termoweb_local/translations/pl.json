@@ -1,0 +1,102 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Termoweb Local",
+        "description": "Połącz się bezpośrednio z radiem, które komunikuje się z grzejnikami Sun Ray, bez bramki ani chmury po drodze.",
+        "data": {
+          "serial_url": "Połączenie radiowe",
+          "station_id": "Id stacji"
+        },
+        "data_description": {
+          "serial_url": "Gdzie znajduje się klucz radiowy nanoCUL868. Podłączony do tego komputera z Home Assistant: jego ścieżka urządzenia, na przykład /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_XXXXXXXX-if00-port0. Podłączony do innego komputera, który udostępnia go w sieci przez ser2net: socket:// a po nim adres i port tego komputera, na przykład socket://192.0.2.35:5555.",
+          "station_id": "Adres radiowy, którego ta integracja używa jako bramki grzejników. Grzejniki są sparowane z 01, więc zostaw 01, chyba że wiesz, dlaczego potrzebujesz innej wartości."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Nie udało się otworzyć portu szeregowego, albo klucz nie zwrócił ani banera startowego, ani odpowiedzi Q. Sprawdź adres URL i upewnij się, że żaden inny proces (nano_rx.py, inny NanoCul) nie trzyma już tego portu.",
+      "invalid_station_id": "Id stacji musi mieć jedną lub dwie cyfry szesnastkowe (00-FF)."
+    },
+    "abort": {
+      "already_configured": "Ten adres URL portu szeregowego jest już skonfigurowany."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opcje Termoweb Local",
+        "description": "Grzejniki dodaje się przyciskami \"Szukaj grzejników\" lub \"Paruj grzejnik\" na urządzeniu stacji (albo automatycznie, podczas konfiguracji); zmień nazwę z poziomu strony własnego urządzenia lub encji, a usuń, usuwając jego urządzenie.",
+        "data": {
+          "poll_interval": "Interwał odpytywania (sekundy)",
+          "dev_id": "Id urządzenia",
+          "heater_association_hex": "Wartość powiązania EB grzejnika (id:hex, oddzielone przecinkami)",
+          "pair_heater_seconds": "Okno przycisku parowania grzejnika (sekundy)"
+        },
+        "data_description": {
+          "poll_interval": "Jak często każdy grzejnik jest odpytywany w spoczynku (domyślnie 300 s, tak jak bramka; docs/PROTOCOL.md sekcja 6).",
+          "dev_id": "Id urządzenia używany w unikalnych id encji i w rejestrze urządzeń. Ustaw dev_id integracji chmurowej, aby zachować ciągłość przy przejściu.",
+          "heater_association_hex": "Opcjonalne wpisy 'id:wartoscHex' (id, dwukropek i 18 znaków szesnastkowych wartości powiązania); grzejnik bez wpisu tutaj po prostu pomija tę ramkę przy starcie stacji.",
+          "pair_heater_seconds": "Jak długo pozostaje otwarte okno wykrywania przycisku \"Paruj grzejnik\" (domyślnie 120 s)."
+        }
+      }
+    },
+    "error": {
+      "invalid_poll_interval": "Interwał odpytywania musi wynosić od 30 do 3600 sekund.",
+      "invalid_association": "Powiązanie grzejnika musi składać się z wpisów 'id:wartoscHex' (id, dwukropek i 18 znaków szesnastkowych wartości powiązania), oddzielonych przecinkami.",
+      "invalid_dev_id": "Id urządzenia nie może być puste.",
+      "invalid_pair_seconds": "Okno parowania grzejnika musi wynosić od 0 do 600 sekund."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "room_temperature": {
+        "name": "Temperatura"
+      },
+      "power_provisional": {
+        "name": "Moc"
+      },
+      "energy": {
+        "name": "Energia"
+      }
+    }
+  },
+  "services": {
+    "poll_now": {
+      "name": "Odpytaj teraz",
+      "description": "Wysyła natychmiast ramkę odpytania do wskazanego grzejnika, zamiast czekać na zwykły cykl koordynatora."
+    },
+    "sync_clock": {
+      "name": "Synchronizuj zegar",
+      "description": "Wysyła teraz ramkę EB synchronizacji zegara do wskazanego grzejnika, zamiast czekać na codzienną synchronizację."
+    },
+    "set_schedule": {
+      "name": "Ustaw harmonogram",
+      "description": "Zapisuje tygodniowy program na wskazanym grzejniku i odczytuje go ponownie, aby potwierdzić, co zostało zapisane."
+    },
+    "set_preset_temperatures": {
+      "name": "Ustaw temperatury trybów",
+      "description": "Jeszcze nieobsługiwane przez protokół radiowy; zawsze zgłasza błąd."
+    },
+    "set_acm_preset": {
+      "name": "Ustaw tryb akumulatora",
+      "description": "Tylko dla węzłów akumulacyjnych, żaden nie jest zainstalowany; zawsze zgłasza błąd."
+    },
+    "start_boost": {
+      "name": "Uruchom boost",
+      "description": "Uruchamia Boost na wskazanym grzejniku; czas trwania ustala własne ustawienie czasu boost grzejnika, a nie pole minut."
+    },
+    "cancel_boost": {
+      "name": "Anuluj boost",
+      "description": "Anuluje trwający Boost na wskazanym grzejniku."
+    },
+    "import_energy_history": {
+      "name": "Importuj historię energii",
+      "description": "Tylko chmura, brak lokalnego źródła energii; zawsze zgłasza błąd."
+    },
+    "ws_debug_probe": {
+      "name": "Sonda debugowania WS",
+      "description": "Tylko chmura, tutaj nie ma połączenia websocket; zawsze zgłasza błąd."
+    }
+  }
+}

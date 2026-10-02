@@ -1,0 +1,102 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Termoweb Local",
+        "description": "Conéctate directamente a la radio que habla con tus radiadores Sun Ray, sin pasarela ni nube de por medio.",
+        "data": {
+          "serial_url": "Conexión de radio",
+          "station_id": "Id de estación"
+        },
+        "data_description": {
+          "serial_url": "Dónde está el stick de radio nanoCUL868. Conectado a esta máquina de Home Assistant: su ruta de dispositivo, por ejemplo /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_XXXXXXXX-if00-port0. Conectado a otra máquina que lo comparte por red con ser2net: socket:// seguido de la dirección y el puerto de esa máquina, por ejemplo socket://192.0.2.35:5555.",
+          "station_id": "La dirección de radio que esta integración usa como pasarela de los radiadores. Los radiadores están emparejados a 01, así que mantén 01 salvo que sepas por qué necesitas otro valor."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "No se pudo abrir el puerto serie, o el stick no devolvió ni el mensaje de arranque ni una respuesta Q. Comprueba la URL y que ningún otro proceso (nano_rx.py, otro NanoCul) tenga ya el puerto abierto.",
+      "invalid_station_id": "El id de estación debe ser uno o dos dígitos hexadecimales (00-FF)."
+    },
+    "abort": {
+      "already_configured": "Esta URL serie ya está configurada."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opciones de Termoweb Local",
+        "description": "Los radiadores se añaden con los botones \"Buscar radiadores\" o \"Emparejar radiador\" del dispositivo de la estación (o automáticamente, al configurar); renombra uno desde su propia página de dispositivo o entidad, y elimina uno borrando su dispositivo.",
+        "data": {
+          "poll_interval": "Intervalo de sondeo (segundos)",
+          "dev_id": "Id de dispositivo",
+          "heater_association_hex": "Valor de asociación EB del radiador (id:hex, separados por comas)",
+          "pair_heater_seconds": "Ventana del botón de emparejar radiador (segundos)"
+        },
+        "data_description": {
+          "poll_interval": "Con qué frecuencia se sondea cada radiador en reposo (300 s por defecto, igual que la pasarela; docs/PROTOCOL.md sección 6).",
+          "dev_id": "Id de dispositivo usado en los id únicos de entidad y en el registro de dispositivos. Indique el dev_id de la integración en la nube para dar continuidad en una migración.",
+          "heater_association_hex": "Entradas opcionales 'id:valorhex' (el id, dos puntos y los 18 caracteres hexadecimales del valor de asociación); un radiador sin entrada aquí simplemente se salta esta trama al arrancar la estación.",
+          "pair_heater_seconds": "Cuánto tiempo permanece abierta la ventana de descubrimiento del botón \"Emparejar radiador\" (120 s por defecto)."
+        }
+      }
+    },
+    "error": {
+      "invalid_poll_interval": "El intervalo de sondeo debe estar entre 30 y 3600 segundos.",
+      "invalid_association": "La asociación del radiador debe consistir en entradas 'id:valorhex' (el id, dos puntos y los 18 caracteres hexadecimales del valor de asociación), separadas por comas.",
+      "invalid_dev_id": "El id de dispositivo no puede estar vacío.",
+      "invalid_pair_seconds": "La ventana de emparejar radiador debe estar entre 0 y 600 segundos."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "room_temperature": {
+        "name": "Temperatura"
+      },
+      "power_provisional": {
+        "name": "Potencia"
+      },
+      "energy": {
+        "name": "Energía"
+      }
+    }
+  },
+  "services": {
+    "poll_now": {
+      "name": "Sondear ahora",
+      "description": "Envía de inmediato una trama de sondeo al radiador indicado en lugar de esperar al ciclo normal del coordinador."
+    },
+    "sync_clock": {
+      "name": "Sincronizar reloj",
+      "description": "Envía ahora mismo la trama EB de sincronización de reloj al radiador indicado en lugar de esperar a la sincronización diaria."
+    },
+    "set_schedule": {
+      "name": "Definir programación",
+      "description": "Escribe el programa semanal en el radiador indicado y lo vuelve a leer para confirmar lo que se guardó."
+    },
+    "set_preset_temperatures": {
+      "name": "Definir temperaturas de preajustes",
+      "description": "Todavía no compatible con el protocolo de radio; siempre lanza un error."
+    },
+    "set_acm_preset": {
+      "name": "Definir preajuste del acumulador",
+      "description": "Solo para nodos acumuladores, no hay ninguno instalado; siempre lanza un error."
+    },
+    "start_boost": {
+      "name": "Iniciar boost",
+      "description": "Inicia el Boost en el radiador indicado; la duración la fija el propio ajuste de tiempo de boost del radiador, no el campo de minutos."
+    },
+    "cancel_boost": {
+      "name": "Cancelar boost",
+      "description": "Cancela un Boost en curso en el radiador indicado."
+    },
+    "import_energy_history": {
+      "name": "Importar historial de energía",
+      "description": "Solo en la nube, no hay fuente de energía local; siempre lanza un error."
+    },
+    "ws_debug_probe": {
+      "name": "Sonda de depuración WS",
+      "description": "Solo en la nube, aquí no hay conexión websocket; siempre lanza un error."
+    }
+  }
+}
