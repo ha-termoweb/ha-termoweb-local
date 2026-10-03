@@ -1,0 +1,23 @@
+name: HACS validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hacs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: hacs/action@22.5.0
+        with:
+          category: integration
+          # Icons ship in custom_components/termoweb_local/brand/, which HA
+          # 2026.3+ serves directly; there is no home-assistant/brands entry.
+          ignore: brands

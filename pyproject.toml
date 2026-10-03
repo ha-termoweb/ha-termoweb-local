@@ -1,0 +1,20 @@
+[project]
+name = "ha-termoweb-local"
+version = "0.1.1"
+description = "Home Assistant integration for local, cloud-free control of Sun Ray RF heaters over a nanoCUL868 stick."
+requires-python = ">=3.14"
+license = "Apache-2.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# pytest-homeassistant-custom-component's autouse async fixtures need auto mode.
+asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+extend-exclude = ["custom_components/termoweb_local/frontend"]
+
+[tool.ruff.lint]
+# Start with errors and pyflakes only; widen once the existing code is clean.
+select = ["E9", "F"]

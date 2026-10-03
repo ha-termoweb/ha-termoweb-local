@@ -1,0 +1,6 @@
+pytest-homeassistant-custom-component==0.13.364
+# The integration depends on HA's `frontend` component, whose own requirement
+# pytest-homeassistant-custom-component does not install.
+home-assistant-frontend==20260826.6
+pyserial>=3.5
+pytest-xdist

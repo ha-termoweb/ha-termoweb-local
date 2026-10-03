@@ -1,0 +1,19 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    # pytest-homeassistant-custom-component pins one Home Assistant release;
+    # bump it deliberately alongside hacs.json's minimum version.
+    ignore:
+      - dependency-name: pytest-homeassistant-custom-component
+      - dependency-name: home-assistant-frontend

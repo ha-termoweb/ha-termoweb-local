@@ -1,0 +1,67 @@
+name: Vendored package
+
+# The integration ships its own copy of the termoweb_local protocol package
+# under vendor/. This checks the copy is self-sufficient and that the
+# firmware's hardcoded link constants still agree with it.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "custom_components/termoweb_local/vendor/**"
+      - "custom_components/termoweb_local/_vendor_compat.py"
+      - "firmware/termoweb_rx/**"
+      - ".github/workflows/vendored-package.yml"
+  pull_request:
+    paths:
+      - "custom_components/termoweb_local/vendor/**"
+      - "custom_components/termoweb_local/_vendor_compat.py"
+      - "firmware/termoweb_rx/**"
+      - ".github/workflows/vendored-package.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  standalone:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+
+      - name: Imports with nothing but pyserial installed
+        working-directory: ${{ runner.temp }}
+        env:
+          VENDOR: ${{ github.workspace }}/custom_components/termoweb_local/vendor
+        run: |
+          python -m venv venv
+          venv/bin/pip install -q "pyserial>=3.5"
+          venv/bin/python - <<'EOF'
+          import os, pathlib, sys
+          vendor = pathlib.Path(os.environ["VENDOR"])
+          sys.path.insert(0, str(vendor))
+          from termoweb_local import frame, heater, nanocul, network
+          assert pathlib.Path(frame.__file__).is_relative_to(vendor), frame.__file__
+          # frame.py must fall back to the vendored codec, not a tools/ copy.
+          assert pathlib.Path(frame.SOURCE_PATH).name == "_vendored_frame.py", frame.SOURCE_PATH
+          print("vendored package OK, codec", frame.SOURCE_PATH)
+          EOF
+
+      - name: Firmware constants match the codec
+        run: |
+          python3 - <<'EOF'
+          import pathlib, re, sys
+          sys.path.insert(0, "custom_components/termoweb_local/vendor/termoweb_local")
+          import _vendored_frame as tf
+          main_c = pathlib.Path("firmware/termoweb_rx/main.c").read_text()
+          net = re.search(r"NETWORK_ID\[2\]\s*=\s*\{\s*(0x[0-9A-Fa-f]+),\s*(0x[0-9A-Fa-f]+)\s*\}", main_c)
+          assert net, "NETWORK_ID not found in main.c"
+          c_net = bytes(int(x, 16) for x in net.groups())
+          assert c_net == bytes(tf.NETWORK_ID), (c_net.hex(), bytes(tf.NETWORK_ID).hex())
+          print("NETWORK_ID", c_net.hex(), "matches")
+          EOF
+          python3 firmware/termoweb_rx/verify_ack.py

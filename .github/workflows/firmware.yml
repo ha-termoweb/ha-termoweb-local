@@ -1,0 +1,41 @@
+name: Firmware
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "firmware/**"
+      - "custom_components/termoweb_local/vendor/**"
+      - ".github/workflows/firmware.yml"
+  pull_request:
+    paths:
+      - "firmware/**"
+      - "custom_components/termoweb_local/vendor/**"
+      - ".github/workflows/firmware.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install the AVR toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gcc-avr avr-libc binutils-avr
+
+      - name: Build termoweb_rx at PA 0xC0
+        run: make -C firmware/termoweb_rx clean build PA=0xC0
+
+      - name: Check the firmware's ack builder against the Python codec
+        run: python3 firmware/termoweb_rx/verify_ack.py
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: termoweb_rx-hex
+          path: firmware/termoweb_rx/termoweb_rx.hex
+          if-no-files-found: error
