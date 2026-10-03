@@ -1,6 +1,6 @@
 # Termoweb Local (unofficial)
 
-Local, cloud-free control of Sun Ray RF electric radiators from Home Assistant. A nanoCUL868 (CC1101) USB stick running the firmware in this repository talks to the heaters directly over their own 869.525 MHz radio link, replacing the Termoweb Smart App Gateway and its cloud.
+Local, cloud-free control of Sun Ray RF electric radiators from Home Assistant. A [nanoCUL868](https://www.ebay.ie/itm/372221622516) ([CC1101](https://www.ti.com/product/CC1101)) USB stick running the firmware in this repository talks to the heaters directly over their own 869.525 MHz radio link, replacing the Termoweb Smart App Gateway and its cloud. For control through the vendor's cloud instead, see the [ha-termoweb](https://github.com/ha-termoweb/ha-termoweb) integration.
 
 ## Independence and trade marks
 
@@ -15,7 +15,7 @@ This software switches mains-powered electric heaters in people's homes. Read th
 - The state a heater reports can differ from what it is physically doing. In one observed case a heater ran its element for about fifty minutes after a Boost started at its own panel, while reporting itself off with zero duty. The integration's `heating_while_off` binary sensor watches the heater's PCB temperature for this. Check the PCB temperature and the energy counter after any panel session before trusting the reported mode.
 - Keep every heater's own thermal cut-outs, panel controls and physical isolation in place. This software is not a safety device and must never be relied on to turn a heater off.
 - Do not leave heaters unattended on the strength of this software alone, especially while you are first setting it up.
-- The software is provided as is, without warranty of any kind (see `LICENSE`).
+- The software is provided as is, without warranty of any kind (see [LICENSE](https://github.com/ha-termoweb/ha-termoweb-local/blob/main/LICENSE)).
 
 ## Radio and spectrum notice
 
@@ -26,10 +26,10 @@ The firmware transmits. It is written for the European 869.4 to 869.65 MHz short
 | Carrier | 869.525 MHz |
 | Modulation | 2-FSK, about 50.8 kHz deviation |
 | Bit rate | 9.6 kbps |
-| Output power | CC1101 PATABLE `0xC0`, about +10 dBm (about 10 mW) at 868 MHz, set at build time with `PA=0xC0` |
+| Output power | [CC1101](https://www.ti.com/lit/ds/symlink/cc1101.pdf) PATABLE `0xC0`, about +10 dBm (about 10 mW) at 868 MHz, set at build time with `PA=0xC0` |
 | Sub-band limits | 500 mW e.r.p., duty cycle at most 10 percent (or listen-before-talk with adaptive frequency agility) |
 
-In Ireland these conditions are ComReg Document 02/71, Table 1 entry 15i, under the Short Range Devices exemption order (S.I. No. 405 of 2002 as amended by S.I. No. 160 of 2006); across the EU they are band 54 of Commission Decision 2006/771/EC. The same band and limits apply under ERC/REC 70-03 elsewhere in CEPT; check your own national rules.
+In Ireland these conditions are [ComReg Document 02/71](https://www.comreg.ie/media/2024/11/ComReg-0271-R17.pdf), Table 1 entry 15i, under the Short Range Devices exemption order ([S.I. No. 405 of 2002](https://www.irishstatutebook.ie/eli/2002/si/405/made/en/print) as amended by [S.I. No. 160 of 2006](https://www.irishstatutebook.ie/eli/2006/si/160/made/en/print)); across the EU they are band 54 of [Commission Decision 2006/771/EC](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32006D0771). The same band and limits apply under ERC/REC 70-03 elsewhere in CEPT; check your own national rules.
 
 Duty cycle, estimated rather than enforced: a frame of n bytes takes (8 preamble + 2 sync + n) x 8 / 9600 s on air, so a typical 16 to 20 byte command or confirmation takes 22 to 25 ms and an 8-byte link ack 15 ms. A station running three heaters sends, per hour, about 72 link keepalives (one per heater every 150 s), 36 status requests (one per heater every 300 s by default), a few dozen report confirmations, one link ack per received heater frame and one energy read per heater, so a few hundred frames at most: about 400 x 25 ms = 10 s of transmit time per hour, about 0.3 percent, against the 360 s (10 percent) the sub-band allows. Neither the firmware nor the integration enforces a transmit-time limit today, so a bug or a misuse could exceed it; a duty-cycle guard is planned. Do not script the stick to transmit in a loop.
 
@@ -47,30 +47,30 @@ hacs.json                           HACS metadata
 
 ## Requirements
 
-- A nanoCUL868 (Arduino Nano clone with a CC1101 868 MHz module), flashed with `firmware/termoweb_rx`. See `firmware/README.md`.
+- A [nanoCUL868](https://www.ebay.ie/itm/372221622516) ([Arduino Nano](https://docs.arduino.cc/hardware/nano/) clone with a [CC1101](https://www.ti.com/product/CC1101) 868 MHz module; [wiring](https://github.com/ha-termoweb/ha-termoweb-local/blob/main/firmware/README.md#wiring)), flashed with `firmware/termoweb_rx`. See [docs/firmware.md](https://github.com/ha-termoweb/ha-termoweb-local/blob/main/docs/firmware.md).
 - Sun Ray RF heaters already paired to a Termoweb gateway, or heaters you are prepared to pair to this station from the integration.
-- Home Assistant 2026.9.0 or newer.
+- [Home Assistant](https://www.home-assistant.io/installation/) 2026.9.0 or newer.
 
 ## Install
 
-1. Build and flash the firmware: `make -C firmware/termoweb_rx clean build PA=0xC0`, then `make -C firmware/termoweb_rx flash PA=0xC0 PORT=/dev/ttyUSB0`. `clean` is needed whenever a build flag changes, and the Makefile's own `PA` default (`0x50`, 0 dBm) is too weak for this link.
-2. In HACS, add `https://github.com/ha-termoweb/ha-termoweb-local` as a custom repository (category Integration), install "Termoweb Local (unofficial)" and restart Home Assistant.
-3. Settings -> Devices & services -> Add integration -> "Termoweb Local". Give it the stick's `/dev/serial/by-id/...` path, or a `socket://host:port` URL if the stick sits on another machine behind ser2net.
+1. Build and flash the firmware: `make -C firmware/termoweb_rx clean build PA=0xC0`, then `make -C firmware/termoweb_rx flash PA=0xC0 PORT=/dev/ttyUSB0`. `clean` is needed whenever a build flag changes, and the Makefile's own `PA` default (`0x50`, 0 dBm) is too weak for this link. Or flash the prebuilt hex attached to the [latest release](https://github.com/ha-termoweb/ha-termoweb-local/releases/latest).
+2. In [HACS](https://hacs.xyz/), add `https://github.com/ha-termoweb/ha-termoweb-local` as a [custom repository](https://hacs.xyz/docs/faq/custom_repositories/) (category Integration), install "Termoweb Local (unofficial)" and restart Home Assistant.
+3. Settings -> Devices & services -> Add integration -> "Termoweb Local". Give it the stick's `/dev/serial/by-id/...` path, or a `socket://host:port` URL if the stick sits on another machine behind [ser2net](https://github.com/cminyard/ser2net) ([docs/remote-stick.md](https://github.com/ha-termoweb/ha-termoweb-local/blob/main/docs/remote-stick.md)).
 4. Power the Termoweb gateway off. Only one station should answer the heaters, and only one process may hold the stick's serial port.
 
-Heaters already bonded to the gateway are found by the integration's scan; others are added with its Pair heater button. The full walkthrough is [docs/installation.md](docs/installation.md); the entities, services and schedule card are in the [integration README](custom_components/termoweb_local/README.md).
+Heaters already bonded to the gateway are found by the integration's scan; others are added with its Pair heater button. The full walkthrough is [docs/installation.md](https://github.com/ha-termoweb/ha-termoweb-local/blob/main/docs/installation.md); the entities, services and schedule card are in the [integration README](https://github.com/ha-termoweb/ha-termoweb-local/blob/main/custom_components/termoweb_local/README.md).
 
 ## Known limitations
 
-- The network id (`1B 30`) and the station id (`01`) are fixed in the firmware and the protocol package, matching the one installation this was developed against. Whether another gateway's network uses the same id is not known yet; if yours differs, the heaters will ignore the station until the id is made configurable.
+- The network id (`1B 30`) and the station id (`01`) are fixed in the firmware and the protocol package, matching the one installation this was developed against. Whether another gateway's network uses the same id is not known yet; if yours differs, the heaters will ignore the station until the id is made configurable; please [open an issue](https://github.com/ha-termoweb/ha-termoweb-local/issues).
 - Developed and tested against three heaters (one Sun Ray RF 1800 and two Sun Ray RF 750) on a single installation.
 - The CC1101's own LQI status byte reads 0 on every frame with this firmware, so link quality is reported from RSSI only. Frame integrity is checked by the host-side CRC.
 
 ## Documentation
 
-[docs/](docs/README.md) covers installation, a remote stick over ser2net, configuration and pairing, the firmware, troubleshooting, keeping your data private, development, CI, releasing and the repository secrets.
+[docs/](https://github.com/ha-termoweb/ha-termoweb-local/blob/main/docs/README.md) covers installation, a remote stick over ser2net, configuration and pairing, the firmware, troubleshooting, keeping your data private, development, CI, releasing and the repository secrets.
 
-Versions come from the [`version`](version) file at the root; see [docs/releasing.md](docs/releasing.md).
+Versions come from the [`version`](https://github.com/ha-termoweb/ha-termoweb-local/blob/main/version) file at the root; see [docs/releasing.md](https://github.com/ha-termoweb/ha-termoweb-local/blob/main/docs/releasing.md).
 
 ## Licence
 

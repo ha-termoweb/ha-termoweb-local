@@ -37,9 +37,9 @@ jobs:
       - name: Read the version file and decide
         id: read
         run: |
-          integration=$(python3 scripts/version.py get integration)
-          firmware=$(python3 scripts/version.py get firmware)
-          python3 scripts/version.py check
+          integration=$(python3 .github/scripts/version.py get integration)
+          firmware=$(python3 .github/scripts/version.py get firmware)
+          python3 .github/scripts/version.py check
           echo "integration=$integration" >> "$GITHUB_OUTPUT"
           echo "firmware=$firmware" >> "$GITHUB_OUTPUT"
 

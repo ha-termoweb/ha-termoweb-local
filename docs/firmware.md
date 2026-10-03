@@ -1,6 +1,6 @@
 # Firmware
 
-`firmware/termoweb_rx` replaces culfw on the nanoCUL868. It receives the heater link, transmits frames the host sends it, and acknowledges frames addressed to the station on its own, fast enough for the heaters' timing. [firmware/README.md](../firmware/README.md) holds the design notes: the CC1101 register table, framing, transmit and the fixes in each version.
+`firmware/termoweb_rx` replaces [culfw](https://github.com/heliflieger/a-culfw) on the [nanoCUL868](https://www.ebay.ie/itm/372221622516). It receives the heater link, transmits frames the host sends it, and acknowledges frames addressed to the station on its own, fast enough for the heaters' timing. [firmware/README.md](../firmware/README.md) holds the design notes: the CC1101 register table, framing, transmit and the fixes in each version.
 
 ## Building
 
@@ -10,7 +10,7 @@ make -C firmware/termoweb_rx clean build PA=0xC0
 
 | Variable | Default | Notes |
 |---|---|---|
-| `PA` | `0x50` (about 0 dBm) | Transmit power. Use `0xC0` (about +10 dBm): the default is too weak for this link. Within the sub-band's limits either way, see the [radio notice](../README.md#radio-and-spectrum-notice). |
+| `PA` | `0x50` (about 0 dBm) | Transmit power, a PATABLE value from the [CC1101 datasheet](https://www.ti.com/lit/ds/symlink/cc1101.pdf). Use `0xC0` (about +10 dBm): the default is too weak for this link. Within the sub-band's limits either way, see the [radio notice](../README.md#radio-and-spectrum-notice). |
 | `PORT` | `/dev/ttyUSB0` | Serial port for `flash` and `signature`. |
 | `BAUD` | `115200` | Bootloader baud rate. |
 | `SYNC1`, `SYNC0`, `LEN` | `0x2D`, `0xE5`, `64` | Link constants; do not change them. |
@@ -27,13 +27,13 @@ Nano clones ship with one of two bootloaders. Find out which, without writing an
 make -C firmware/termoweb_rx signature PORT=/dev/ttyUSB0
 ```
 
-Then flash at the baud rate that answered (`115200` for Optiboot, `57600` for the classic bootloader):
+Then flash at the baud rate that answered (`115200` for [Optiboot](https://github.com/Optiboot/optiboot), `57600` for the classic bootloader):
 
 ```
 make -C firmware/termoweb_rx flash PA=0xC0 PORT=/dev/ttyUSB0 BAUD=115200
 ```
 
-To flash a release's prebuilt hex without building:
+To flash a [release](https://github.com/ha-termoweb/ha-termoweb-local/releases/latest)'s prebuilt hex without building, with [avrdude](https://github.com/avrdudes/avrdude):
 
 ```
 avrdude -c arduino -p m328p -P /dev/ttyUSB0 -b 115200 -D -U flash:w:termoweb_rx-<version>-paC0.hex:i
@@ -43,7 +43,7 @@ Nothing else may hold the port while flashing: stop the integration, or ser2net 
 
 ## Checking it
 
-Open the port at 115200 8N1 (`python3 -m serial.tools.miniterm /dev/ttyUSB0 115200`) and send `Q`. The reply names the version, frequency, power and station id:
+Open the port at 115200 8N1 (`python3 -m serial.tools.miniterm /dev/ttyUSB0 115200`, pyserial's [miniterm](https://pyserial.readthedocs.io/en/latest/tools.html)) and send `Q`. The reply names the version, frequency, power and station id:
 
 ```
 # Q termoweb_rx 3.5 freq=869.525 pa=C0 sync=2DE5 mode=dynamic autoack=off id=01
@@ -53,4 +53,4 @@ Received frames print as `RX <micros> <rssi> <lqi> <crc_bit> <hex>`. The full co
 
 ## Restoring culfw
 
-No culfw binary is distributed here. Build a-culfw from upstream source as described in [firmware/README.md](../firmware/README.md#restoring-culfw).
+No culfw binary is distributed here. Build [a-culfw](https://github.com/heliflieger/a-culfw) from upstream source as described in [firmware/README.md](../firmware/README.md#restoring-culfw).

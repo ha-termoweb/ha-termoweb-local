@@ -9,15 +9,15 @@ integration=0.1.1
 firmware=3.5
 ```
 
-- **integration** is the Home Assistant integration's version. `manifest.json` (which Home Assistant and HACS read) and `pyproject.toml` carry copies of it, written by `python3 scripts/version.py sync`. The Version workflow fails any change where a copy disagrees.
+- **integration** is the Home Assistant integration's version. `manifest.json` (which Home Assistant and HACS read) and `pyproject.toml` carry copies of it, written by `python3 .github/scripts/version.py sync`. The Version workflow fails any change where a copy disagrees.
 - **firmware** is termoweb_rx's version. Nothing copies it: the firmware Makefile reads it at build time and compiles it into the stick's banner, so `Q` on a flashed stick reports it ([firmware.md](firmware.md#checking-it)).
 
-Both are dotted numbers with no `v` prefix. `scripts/version.py` rejects anything else.
+Both are dotted numbers with no `v` prefix. `.github/scripts/version.py` rejects anything else.
 
 ## Cutting a release
 
 1. Edit `version`. Every release bumps `integration`. Bump `firmware` too if `firmware/termoweb_rx` changed since the last release.
-2. Run `python3 scripts/version.py sync` to update `manifest.json` and `pyproject.toml`.
+2. Run `python3 .github/scripts/version.py sync` to update `manifest.json` and `pyproject.toml`.
 3. Commit all three files and push to `main`, directly or through a pull request.
 
 When that push reaches `main`, the Release workflow:
@@ -27,9 +27,9 @@ When that push reaches `main`, the Release workflow:
 3. runs the full test suite;
 4. builds the firmware at PA `0xC0` and zips the integration;
 5. tags the tip of `main` as `v<integration>`, and as `firmware-v<firmware>` when that firmware version has no tag yet;
-6. publishes a GitHub release for `v<integration>` with `termoweb_local.zip` and `termoweb_rx-<firmware>-paC0.hex` attached, and notes generated from the merged pull requests.
+6. publishes a GitHub release for `v<integration>` with `termoweb_local.zip` and `termoweb_rx-<firmware>-paC0.hex` attached, and [notes generated](https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes) from the merged pull requests.
 
-HACS offers the new release to users from the `v<integration>` tag.
+[HACS](https://hacs.xyz/) offers the new release to users from the `v<integration>` tag.
 
 ## Rules the workflows enforce
 
@@ -43,5 +43,5 @@ If the release step itself fails (for example a network error), start the Releas
 
 ## Repository settings it relies on
 
-- Tags matching `v*` and `firmware-v*` must not be protected against the GitHub Actions bot, or the tag push fails.
+- Tags matching `v*` and `firmware-v*` must not be protected against the GitHub Actions bot by a [tag ruleset](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets), or the tag push fails.
 - No secret is needed: tagging and publishing use the built-in `GITHUB_TOKEN` ([secrets.md](secrets.md#github_token)).

@@ -1,6 +1,6 @@
 # Repository secrets
 
-The workflows ([ci.md](ci.md)) use one secret you set yourself, `LEAK_PATTERNS`, and the token GitHub provides to every workflow, `GITHUB_TOKEN`.
+The workflows ([ci.md](ci.md)) use one [repository secret](https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions) you set yourself, `LEAK_PATTERNS`, and the token GitHub provides to every workflow, `GITHUB_TOKEN`.
 
 | Secret | Required | Used by | Set by |
 |---|---|---|---|
@@ -19,7 +19,7 @@ The Leak scan workflow searches every tracked file for each line of the list, as
 
 The list lives in a secret rather than a file in the repository because a committed list would publish exactly the values it protects.
 
-If the secret is not set, the step passes with a notice and only the generic checks run: gitleaks, private LAN address ranges and home directory paths.
+If the secret is not set, the step passes with a notice and only the generic checks run: [gitleaks](https://github.com/gitleaks/gitleaks), private LAN address ranges and home directory paths.
 
 ### What goes in it, and where to find each value
 
@@ -31,7 +31,7 @@ One value per line. Blank lines are ignored. Add every value that applies to the
 | Termoweb cloud device id | 18 hex characters | The `dev_id` attribute on any climate entity of the cloud `termoweb` integration, or the Termoweb app's gateway details. Also the value you may have set as Device id ([configuration.md](configuration.md#device-id)). |
 | Termoweb gateway serial or MAC | as printed | The label on the gateway. |
 | Heater identities | 24 hex characters each, one line per heater | The Home Assistant log, with debug logging on, prints `learned identity <24 hex> for node <id>` for each heater. They are also stored in `config/.storage/core.config_entries` under the `termoweb_local` entry's `heater_identities_hex` option. |
-| Home Assistant hostname | `myhome.example.net` | Settings -> System -> Network, or your DNS. Include any external hostname or Nabu Casa remote URL too. |
+| Home Assistant hostname | `myhome.example.net` | Settings -> System -> Network, or your DNS. Include any external hostname or [Nabu Casa](https://www.nabucasa.com/) remote URL too. |
 | Public IP address | `203.0.113.7` | Your router, or any what-is-my-IP service. |
 | LAN addresses outside the private ranges | | Only if your LAN does not use 10.x, 172.16-31.x or 192.168.x. Those ranges are already blocked for every address. |
 | Your usernames and email | | The username on the machines you develop on (it appears in paths), and any email you would not want in a file. |
@@ -42,7 +42,7 @@ To catch values written with spaces between bytes, as logs sometimes print them 
 
 - **Short or common strings**, such as `04`, `heater` or a first name on its own. They match ordinary code and fail every build.
 - **Protocol constants**, such as the network id `1b30` or the station id `01`. They are in the code legitimately.
-- **Values already in the repository on purpose**, such as the placeholder serial `XXXXXXXX` or the documentation addresses `192.0.2.x` and `203.0.113.x`.
+- **Values already in the repository on purpose**, such as the placeholder serial `XXXXXXXX` or the [documentation addresses](https://datatracker.ietf.org/doc/html/rfc5737) `192.0.2.x` and `203.0.113.x`.
 
 Before saving the list, check it does not match the current tree, so the scan starts green:
 
@@ -56,7 +56,7 @@ No output means no matches.
 
 Write the list to a file outside any repository, for example `~/leak-patterns.txt`, then either:
 
-- **Command line**, with the [GitHub CLI](https://cli.github.com/) logged in as a repository admin:
+- **Command line**, with the [GitHub CLI](https://cli.github.com/) logged in as a repository admin ([`gh secret set` reference](https://cli.github.com/manual/gh_secret_set)):
 
   ```
   gh secret set LEAK_PATTERNS -R <owner>/<repo> < ~/leak-patterns.txt
@@ -72,13 +72,13 @@ Run the Leak scan workflow from the Actions tab afterwards to confirm it passes.
 
 ### Limits
 
-- It checks the files of the commit being built, not the history. gitleaks covers the history, but only for generic credentials such as API keys. If a value has already been committed, removing it in a later commit does not remove it from the history; see [privacy.md](privacy.md#if-something-was-committed).
+- It checks the files of the commit being built, not the history. [gitleaks](https://github.com/gitleaks/gitleaks) covers the history, but only for generic credentials such as API keys. If a value has already been committed, removing it in a later commit does not remove it from the history; see [privacy.md](privacy.md#if-something-was-committed).
 - It matches exact strings only. A value written differently (split across lines, reformatted, encoded) is not caught.
 - Pull requests from forks get no secrets, so the step skips there and runs once the change reaches `main` ([ci.md](ci.md#pull-requests-from-forks)).
 
 ## GITHUB_TOKEN
 
-GitHub creates this token for every workflow run; there is nothing to set. Workflows here use it read-only, except the Release workflow's tagging job, which asks for `contents: write` to push the `v<integration>` and `firmware-v<firmware>` tags and create the release ([releasing.md](releasing.md)).
+GitHub [creates this token](https://docs.github.com/en/actions/security-for-github-actions/security-guides/automatic-token-authentication) for every workflow run; there is nothing to set. Workflows here use it read-only, except the Release workflow's tagging job, which asks for `contents: write` to push the `v<integration>` and `firmware-v<firmware>` tags and create the release ([releasing.md](releasing.md)).
 
 If an organisation policy restricts workflow permissions to read-only, the Release job fails at the tag push. Allow it under Settings -> Actions -> General -> Workflow permissions, or the organisation's equivalent.
 

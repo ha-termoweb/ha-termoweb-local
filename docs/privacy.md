@@ -21,7 +21,7 @@ Before pasting anything into an issue:
 
 1. Replace the stick serial with `XXXXXXXX`.
 2. Replace heater identities with `<identity>`. In debug logs they appear in `learned identity`, `pairing:` lines and inside the hex of `E7` and `E0` frames.
-3. Replace hostnames and addresses with `homeassistant.example.net` and `192.0.2.x`, the ranges reserved for documentation.
+3. Replace hostnames and addresses with `homeassistant.example.net` and `192.0.2.x`, names and addresses reserved for documentation ([RFC 2606](https://datatracker.ietf.org/doc/html/rfc2606), [RFC 5737](https://datatracker.ietf.org/doc/html/rfc5737)).
 4. Rename heaters to generic names, or replace room names.
 
 [troubleshooting.md](troubleshooting.md) shows how to turn on the debug logging an issue usually needs.
@@ -29,7 +29,7 @@ Before pasting anything into an issue:
 ## Contributing code
 
 - Use the placeholders above in code, tests and documentation. Tests use synthetic identities and frames built from synthetic fields ([development.md](development.md#tests)); never paste captured bytes from your own heaters.
-- Configure git with a commit email you are happy to publish. GitHub's `<id>+<username>@users.noreply.github.com` address works.
+- Configure git with a commit email you are happy to publish. GitHub's `<id>+<username>@users.noreply.github.com` address works ([how](https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-email-preferences/setting-your-commit-email-address)).
 - Maintainers: set the `LEAK_PATTERNS` secret so CI blocks your own identifiers ([secrets.md](secrets.md#leak_patterns)).
 
 ## If something was committed
@@ -38,6 +38,6 @@ Removing a value in a new commit leaves it in the history, where anyone can read
 
 1. Treat the value as public. Rotate it where possible; serials and heater identities cannot be rotated.
 2. Rewrite the history to remove it, for example with [git filter-repo](https://github.com/newren/git-filter-repo) and its `--replace-text` option, then force-push. This changes every later commit id, so coordinate with anyone who has a clone.
-3. Ask GitHub support to purge cached views and pull request references if the value was sensitive.
+3. Ask GitHub support to purge cached views ([GitHub's guide](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository)) and pull request references if the value was sensitive.
 
 Then add the value to `LEAK_PATTERNS` so it cannot come back ([secrets.md](secrets.md)).

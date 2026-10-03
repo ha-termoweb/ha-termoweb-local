@@ -1,14 +1,14 @@
 # firmware
 
-`termoweb_rx`: a dedicated CC1101 packet receiver and transmitter for the Sun Ray RF heater link at 869.525 MHz, replacing culfw on the nanoCUL868. Current version 3.5.
+`termoweb_rx`: a dedicated [CC1101](https://www.ti.com/product/CC1101) packet receiver and transmitter for the Sun Ray RF heater link at 869.525 MHz, replacing [culfw](https://github.com/heliflieger/a-culfw) on the [nanoCUL868](https://www.ebay.ie/itm/372221622516). Current version 3.5.
 
-To put a-culfw back on the stick, build it from upstream source (see "Restoring culfw" below); no a-culfw binary is distributed here.
+To put a-culfw back on the stick, build it from upstream source (see [Restoring culfw](#restoring-culfw)); no a-culfw binary is distributed here.
 
-The sections below are the firmware's development record, version by version; where they mention `tools/nano_rx.py`, `tools/termoweb_frame.py` or `docs/`, those are development tools and notes from the private research tree that are not part of this repository. The same frame codec ships here as `custom_components/termoweb_local/vendor/termoweb_local/_vendored_frame.py`.
+The sections below are the firmware's development record, version by version; where they mention `tools/nano_rx.py`, `tools/termoweb_frame.py` or `docs/`, those are development tools and notes from the private research tree that are not part of this repository. The same frame codec ships here as [`custom_components/termoweb_local/vendor/termoweb_local/_vendored_frame.py`](../custom_components/termoweb_local/vendor/termoweb_local/_vendored_frame.py). The user-facing build and flash guide is [docs/firmware.md](../docs/firmware.md).
 
 ## Wiring
 
-From a-culfw's own `culfw/Devices/nanoCUL/board.h` (fetched from `heliflieger/a-culfw`, master branch, commit `f4305ea7ca9aba2ace6978c9c29e2645072e5c66`), confirmed byte for byte:
+From a-culfw's own [`culfw/Devices/nanoCUL/board.h`](https://github.com/heliflieger/a-culfw/blob/f4305ea7ca9aba2ace6978c9c29e2645072e5c66/culfw/Devices/nanoCUL/board.h) (fetched from [`heliflieger/a-culfw`](https://github.com/heliflieger/a-culfw), master branch, commit [`f4305ea7`](https://github.com/heliflieger/a-culfw/commit/f4305ea7ca9aba2ace6978c9c29e2645072e5c66)), confirmed byte for byte:
 
 | Signal | AVR pin | Arduino Nano pin |
 |---|---|---|
@@ -28,7 +28,7 @@ cd firmware/termoweb_rx
 make build
 ```
 
-Needs `avr-gcc`, `avr-objcopy`, `avr-size` (no Arduino IDE, no arduino-cli). Produces `termoweb_rx.hex`; the sync word and the fixed packet length are build-time overridable:
+Needs `avr-gcc`, `avr-objcopy`, `avr-size` and [avr-libc](https://github.com/avrdudes/avr-libc) (no Arduino IDE, no arduino-cli). Produces `termoweb_rx.hex`; the sync word and the fixed packet length are build-time overridable:
 
 ```
 make build SYNC1=0x2D SYNC0=0xE5 LEN=64
@@ -47,7 +47,7 @@ avrdude -c arduino -p m328p -P /dev/ttyUSB0 -b 57600   # classic bootloader
 avrdude -c arduino -p m328p -P /dev/ttyUSB0 -b 115200  # Optiboot
 ```
 
-On this stick 57600 timed out (`programmer is not responding`) and 115200 worked (`device signature = 0x1e950f (probably m328p)`), so it runs Optiboot. Then:
+On this stick 57600 timed out (`programmer is not responding`) and 115200 worked (`device signature = 0x1e950f (probably m328p)`), so it runs [Optiboot](https://github.com/Optiboot/optiboot). Then:
 
 ```
 make flash PORT=/dev/ttyUSB0 BAUD=115200
@@ -71,11 +71,11 @@ All addresses and purposes are in `firmware/termoweb_rx/cc1101.c`; the arithmeti
 | PKTCTRL0 | `0x00` | fixed length mode, CRC off (unknown, so left off rather than rejecting real frames), whitening off (unknown) |
 | PKTCTRL1 | `0x04` | APPEND_STATUS on: RSSI and LQI/CRC_OK follow every FIFO read |
 | FSCTRL1 | `0x06` | standard IF frequency for this class of data rate |
-| FIFOTHR | `0x47` | default FIFO thresholds plus ADC_RETENTION, required by the CC1101 datasheet whenever the RX filter BW is <= 325 kHz |
+| FIFOTHR | `0x47` | default FIFO thresholds plus ADC_RETENTION, required by the [CC1101 datasheet](https://www.ti.com/lit/ds/symlink/cc1101.pdf) whenever the RX filter BW is <= 325 kHz |
 | TEST2/1/0 | `0x81 0x35 0x09` | same BW<=325kHz requirement; TEST0 also sets VCO_SEL_CAL_EN |
 | IOCFG0 | `0x06` | GDO0 asserts on sync detect, deasserts once `PKTLEN` bytes are in -> drives the RX-done interrupt |
 
-Registers not tied to a measured parameter (FOCCFG, BSCFG, AGCCTRL2/0, FREND1/0, FSCAL3/2/1/0, MCSM1/0, FSTEST, MDMCFG1/0, CHANNR, ADDR, FSCTRL0, IOCFG2) use the generic 2-FSK baseline from the widely deployed ELECHOUSE/SmartRC CC1101 driver (`github.com/LSatan/SmartRC-CC1101-Driver-Lib`, `SmartRC_CC1101.cpp`). That baseline was cross-checked, not assumed: its TEST2/TEST1/TEST0, PKTCTRL1 and FSCTRL1 values match the numbers this link already required from the CC1101 datasheet's own BW<=325kHz rule, which is why it was trusted for the registers the datasheet does not pin to a specific value. SmartRF Studio itself needs Windows and was not available on this host, so this is the best available substitute; if reception is marginal, the rest of the AGC (AGCCTRL2/0, FOCCFG, BSCFG) is the first place to revisit.
+Registers not tied to a measured parameter (FOCCFG, BSCFG, AGCCTRL2/0, FREND1/0, FSCAL3/2/1/0, MCSM1/0, FSTEST, MDMCFG1/0, CHANNR, ADDR, FSCTRL0, IOCFG2) use the generic 2-FSK baseline from the widely deployed ELECHOUSE/SmartRC CC1101 driver ([LSatan/SmartRC-CC1101-Driver-Lib](https://github.com/LSatan/SmartRC-CC1101-Driver-Lib), `SmartRC_CC1101.cpp`). That baseline was cross-checked, not assumed: its TEST2/TEST1/TEST0, PKTCTRL1 and FSCTRL1 values match the numbers this link already required from the CC1101 datasheet's own BW<=325kHz rule, which is why it was trusted for the registers the datasheet does not pin to a specific value. SmartRF Studio itself needs Windows and was not available on this host, so this is the best available substitute; if reception is marginal, the rest of the AGC (AGCCTRL2/0, FOCCFG, BSCFG) is the first place to revisit.
 
 ## Packet framing: fixed length again, split on the host
 
@@ -110,10 +110,10 @@ This trades a data-driven cutoff (which never worked reliably) for a determinist
 
 ## Restoring culfw
 
-a-culfw (GPL-2.0-or-later) publishes no binary releases. Build it from source and flash it with the same avrdude invocation as `make flash`:
+[a-culfw](https://github.com/heliflieger/a-culfw) ([GPL-2.0-or-later](https://github.com/heliflieger/a-culfw/blob/master/LICENSE)) publishes no binary releases. Build it from source and flash it with the same [avrdude](https://github.com/avrdudes/avrdude) invocation as `make flash`:
 
-- Source: https://github.com/heliflieger/a-culfw, commit `f4305ea7ca9aba2ace6978c9c29e2645072e5c66`
-- In `culfw/Devices/nanoCUL/`: `make TARGET=nanoCUL868 mostly_clean sizebefore build sizeafter`. With avr-gcc 10 or newer add `-fcommon` to the CFLAGS, because the source relies on tentative definitions in headers.
+- Source: [heliflieger/a-culfw](https://github.com/heliflieger/a-culfw), commit [`f4305ea7ca9aba2ace6978c9c29e2645072e5c66`](https://github.com/heliflieger/a-culfw/commit/f4305ea7ca9aba2ace6978c9c29e2645072e5c66)
+- In `culfw/Devices/nanoCUL/`: `make TARGET=nanoCUL868 mostly_clean sizebefore build sizeafter`. With [avr-gcc 10 or newer](https://gcc.gnu.org/gcc-10/porting_to.html) add `-fcommon` to the CFLAGS, because the source relies on tentative definitions in headers.
 - Flash: `avrdude -c arduino -p m328p -P /dev/ttyUSB0 -b 115200 -D -U flash:w:nanoCUL868.hex:i`
 
 ## Chunked transmit past 64 bytes (3.3)
@@ -166,7 +166,7 @@ Limits not verified without hardware: whether the liveness guard's 250 ms thresh
 
 ## Transmit (3.1)
 
-`T<hex>\n` on the serial port sends one fixed-length packet: the chip adds 8 preamble bytes (MDMCFG1 0x42) and the sync word 2D E5, then the given bytes, then returns to receive. Reply `TX <micros> <n> <hex>` or `TXERR <marcstate>`. The packet-done interrupt is masked during transmission so the transmitted bytes are not reported as a reception. Transmit power comes from the PATABLE written at init: `make flash PA=0x50` for 0 dBm (default), `PA=0xC0` for +10 dBm (868 MHz values from the CC1101 datasheet); the banner shows `tx=pa<value>`. The carrier is 869.525 MHz (FREQ 0x21717A), the value printed on the gateway label; the banner reports it. First live test 2026-09-06: at +10 dBm with the 8-byte preamble the master bedroom heater acked setpoint commands within 65 ms and reported them to the cloud; one frame at 0 dBm with a 4-byte preamble at 869.540 MHz got no ack, the cause was not isolated. Keep transmissions to single frames on demand; the 869.4 to 869.65 MHz sub-band allows 500 mW ERP at 10 percent duty, so this is far inside the limit, but never loop.
+`T<hex>\n` on the serial port sends one fixed-length packet: the chip adds 8 preamble bytes (MDMCFG1 0x42) and the sync word 2D E5, then the given bytes, then returns to receive. Reply `TX <micros> <n> <hex>` or `TXERR <marcstate>`. The packet-done interrupt is masked during transmission so the transmitted bytes are not reported as a reception. Transmit power comes from the PATABLE written at init: `make flash PA=0x50` for 0 dBm (default), `PA=0xC0` for +10 dBm (868 MHz values from the CC1101 datasheet); the banner shows `tx=pa<value>`. The carrier is 869.525 MHz (FREQ 0x21717A), the value printed on the gateway label; the banner reports it. First live test 2026-09-06: at +10 dBm with the 8-byte preamble the master bedroom heater acked setpoint commands within 65 ms and reported them to the cloud; one frame at 0 dBm with a 4-byte preamble at 869.540 MHz got no ack, the cause was not isolated. Keep transmissions to single frames on demand; the [869.4 to 869.65 MHz sub-band](../README.md#radio-and-spectrum-notice) allows 500 mW ERP at 10 percent duty, so this is far inside the limit, but never loop.
 
 ## Dynamic framing and auto-ack (3.2)
 

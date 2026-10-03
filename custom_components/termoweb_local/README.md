@@ -1,6 +1,6 @@
 # Termoweb Local (Home Assistant integration)
 
-Local, cloud-free control of Sun Ray heaters over a nanoCUL868 stick, on top of the `termoweb_local` Python package vendored under `vendor/termoweb_local/`. No gateway, no cloud, no daemon: Home Assistant talks to the stick over serial directly.
+Local, cloud-free control of Sun Ray heaters over a [nanoCUL868](https://www.ebay.ie/itm/372221622516) stick, on top of the `termoweb_local` Python package vendored under `vendor/termoweb_local/`. No gateway, no cloud, no daemon: Home Assistant talks to the stick over serial directly.
 
 ## Versions this was built and tested against
 
@@ -9,11 +9,13 @@ Local, cloud-free control of Sun Ray heaters over a nanoCUL868 stick, on top of 
 
 ## Install via HACS
 
-1. In HACS, add this repository as a **custom repository** (category: Integration).
+1. In [HACS](https://hacs.xyz/), add this repository as a [**custom repository**](https://hacs.xyz/docs/faq/custom_repositories/) (category: Integration).
 2. Install "Termoweb Local (unofficial)" and restart Home Assistant.
 3. Add the integration from Settings -> Devices & services -> Add integration -> "Termoweb Local".
 
-The `termoweb_local` protocol package is vendored under `vendor/termoweb_local/`, so the only requirement Home Assistant installs is `pyserial`. `_vendor_compat.py` puts the vendored copy on the import path only when no other `termoweb_local` is installed.
+The full walkthrough, including flashing the stick, is [docs/installation.md](../../docs/installation.md).
+
+The `termoweb_local` protocol package is vendored under `vendor/termoweb_local/`, so the only requirement Home Assistant installs is [`pyserial`](https://pyserial.readthedocs.io/). `_vendor_compat.py` puts the vendored copy on the import path only when no other `termoweb_local` is installed.
 
 ## Serial device passthrough on Home Assistant OS
 
@@ -28,13 +30,13 @@ Point the config flow's "Serial URL" field at the `by-id` path, not `/dev/ttyUSB
 
 ## Development: `socket://` against a TCP bridge
 
-During development the nanoCUL can stay on a bench host, exposed over TCP (ser2net in raw mode, `max-connections: 1`, and a `local` connector so a TCP reconnect never toggles DTR and resets the stick), with the integration's Serial URL set to:
+During development the nanoCUL can stay on a bench host, exposed over TCP ([ser2net](https://github.com/cminyard/ser2net) in raw mode, `max-connections: 1`, and a `local` connector so a TCP reconnect never toggles DTR and resets the stick), with the integration's Serial URL set to:
 
 ```
 socket://192.0.2.50:7000
 ```
 
-`termoweb_local.nanocul.NanoCul` passes the URL straight to `serial.serial_for_url`, so this needs no code change, only a different string in the config flow.
+`termoweb_local.nanocul.NanoCul` passes the URL straight to [`serial.serial_for_url`](https://pyserial.readthedocs.io/en/latest/url_handlers.html), so this needs no code change, only a different string in the config flow. The full setup is [docs/remote-stick.md](../../docs/remote-stick.md).
 
 ## One-owner-of-the-port rule
 
@@ -42,7 +44,7 @@ Exactly one process may hold the nanoCUL's serial port at a time. This integrati
 
 ## Entities
 
-This integration's API (entity kinds, attributes, service names and fields) mirrors the cloud `termoweb` integration, so an automation built against the cloud's services and attributes keeps working unchanged, but entity ids do not need to match: this integration derives its own from the configured heater name, so the two integrations can run side by side without ever colliding on an entity id.
+This integration's API (entity kinds, attributes, service names and fields) mirrors the cloud [`termoweb` integration](https://github.com/ha-termoweb/ha-termoweb), so an automation built against the cloud's services and attributes keeps working unchanged, but entity ids do not need to match: this integration derives its own from the configured heater name, so the two integrations can run side by side without ever colliding on an entity id.
 
 Naming rule: a heater's object id is a slug of its configured name plus `_heater` (`<slug>_heater`), with the entity kind appended for every platform except climate itself (`<slug>_heater_<kind>`) -- unless the slug already contains "heater" as one of its underscore-separated words, in which case the slug is used as-is with no `_heater` suffix appended (`<slug>_<kind>`). The three default heaters ("Living room", "Bedroom", "Master bedroom") give `living_room_heater`, `bedroom_heater` and `master_bedroom_heater`. A discovered heater's default name, "Heater `<id>`" (two hex digits, e.g. "Heater 02"), already contains "heater", so it gives `heater_02` rather than `heater_02_heater` (and `sensor.heater_02_temperature`, `sensor.heater_02_power`, `sensor.heater_02_energy`, `button.heater_02_flash_display`, `number.heater_02_priority`, `lock.heater_02_child_lock`); the same applies to a user-given name that already says "heater", such as "Bedroom heater" giving `bedroom_heater` rather than `bedroom_heater_heater`. Friendly names follow the same pattern: "Living room heater", "Living room heater temperature", and so on. Unique ids are `termoweb_local:<dev_id>:<node_type>:<addr>:<kind>` (API-parity shape, domain prefix `termoweb_local`), unaffected by heater renames. One gateway device (the nanoCUL station, named "Termoweb Local gateway (nanoCUL)") and one device per heater (named "<Name> heater"), `via_device` from every heater to the gateway. Device identifiers are namespaced under `termoweb_local` (and, per heater, the heater's own addr too), so they never collide with the cloud integration's device registry entries even when the `dev_id` option is left at its default (the cloud system's own value).
 
@@ -122,7 +124,7 @@ Heaters are never typed by hand. Three ways a heater joins the integration, all 
 
 - **The setup-time scan**: every time the integration starts (a fresh install, a restart, or a reload), the coordinator probes ids 2 to 65 with an on-demand status request; any id that answers and is not already configured is registered as a new heater named "Heater `<id>`" (two hex digits, e.g. "Heater 05"), and its startup burst runs like any other heater's. An id already configured is left alone -- the scan only confirms it is still there, it never re-adds or renames it.
 - **`button.termoweb_local_scan_for_heaters`**: repeats that same scan on demand, for a heater that was powered on after Home Assistant already started.
-- **`button.termoweb_local_pair_heater`**: opens a discovery window (default 120 s, the `pair_heater_seconds` option) during which a heater's own E7 pairing announcement (sent from the radio's broadcast id, once you put the physical heater into its own pairing mode -- see its manual) is acked, assigned the lowest free id from 2 to 65 (or its previously assigned id, if this exact heater paired before), and registered the same way. A persistent notification names the id that was assigned. `binary_sensor.termoweb_local_gateway_online`'s own `pairing_active` attribute shows whether the window is currently open.
+- **`button.termoweb_local_pair_heater`**: opens a discovery window (default 120 s, the `pair_heater_seconds` option) during which a heater's own E7 pairing announcement (sent from the radio's broadcast id, once you put the physical heater into its own pairing mode -- see its [manual](https://atc.ie/wp-content/uploads/Manual-atc-Sun-Ray-RF_v07.pdf)) is acked, assigned the lowest free id from 2 to 65 (or its previously assigned id, if this exact heater paired before), and registered the same way. A persistent notification names the id that was assigned. `binary_sensor.termoweb_local_gateway_online`'s own `pairing_active` attribute shows whether the window is currently open.
 - **A runtime report from an unknown id**: if a heater the scan missed sends a report or its own registration-opening frame while Home Assistant is already running, it is registered on the spot, the same way.
 
 Every discovered heater is persisted (its id and name) to the config entry so a restart keeps it and its name, rather than losing it or renaming it back to the default.

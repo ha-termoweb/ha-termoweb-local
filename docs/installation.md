@@ -4,11 +4,11 @@ Read the [safety notice and the radio notice](../README.md#safety-notice) first.
 
 ## What you need
 
-- **A nanoCUL868**: an Arduino Nano (ATmega328P, 16 MHz) wired to a CC1101 868 MHz module, sold ready-made under that name. The wiring the firmware expects is in [firmware/README.md](../firmware/README.md#wiring).
+- **A nanoCUL868**: an [Arduino Nano](https://docs.arduino.cc/hardware/nano/) (ATmega328P, 16 MHz) wired to a [CC1101](https://www.ti.com/product/CC1101) 868 MHz module, sold ready-made under that name ([example listing](https://www.ebay.ie/itm/372221622516)). The wiring the firmware expects is in [firmware/README.md](../firmware/README.md#wiring).
 - **An antenna tuned for 868 MHz.** The stock helical antenna works at room-to-room range.
-- **Sun Ray RF heaters.** Heaters already paired to a Termoweb gateway are found automatically. Unpaired or factory-reset heaters can be paired from the integration.
-- **Home Assistant 2026.9.0 or newer.**
-- **A machine to build and flash the firmware**, with `avr-gcc`, `avr-libc` and `avrdude`. On Debian or Ubuntu: `sudo apt install gcc-avr avr-libc binutils-avr avrdude make`.
+- **Sun Ray RF heaters** ([manual](https://atc.ie/wp-content/uploads/Manual-atc-Sun-Ray-RF_v07.pdf)). Heaters already paired to a Termoweb gateway are found automatically. Unpaired or factory-reset heaters can be paired from the integration.
+- **[Home Assistant](https://www.home-assistant.io/installation/) 2026.9.0 or newer.**
+- **A machine to build and flash the firmware**, with `avr-gcc`, [`avr-libc`](https://github.com/avrdudes/avr-libc) and [`avrdude`](https://github.com/avrdudes/avrdude). On Debian or Ubuntu: `sudo apt install gcc-avr avr-libc binutils-avr avrdude make`.
 
 ## 1. Flash the stick
 
@@ -21,14 +21,14 @@ Each [GitHub release](https://github.com/ha-termoweb/ha-termoweb-local/releases)
 
 ## 2. Install the integration
 
-1. In HACS, open the menu, choose **Custom repositories**, add `https://github.com/ha-termoweb/ha-termoweb-local` with category **Integration**.
+1. In [HACS](https://hacs.xyz/), open the menu, choose **Custom repositories** ([how](https://hacs.xyz/docs/faq/custom_repositories/)), add `https://github.com/ha-termoweb/ha-termoweb-local` with category **Integration**.
 2. Install **Termoweb Local (unofficial)** and restart Home Assistant.
 
-Without HACS, copy `custom_components/termoweb_local` from a release's `termoweb_local.zip` into your Home Assistant `config/custom_components/` directory and restart. The protocol package is bundled inside it, so nothing else needs installing.
+Without HACS, copy `custom_components/termoweb_local` from the [latest release](https://github.com/ha-termoweb/ha-termoweb-local/releases/latest)'s `termoweb_local.zip` into your Home Assistant `config/custom_components/` directory and restart. The protocol package is bundled inside it, so nothing else needs installing.
 
 ## 3. Take over from the gateway
 
-Only one station may answer the heaters. Power the Termoweb gateway off before adding the integration, and leave it off. If both run, both acknowledge the heaters' reports and the heaters see two masters. The cloud app stops working while the gateway is off.
+Only one station may answer the heaters. Power the Termoweb gateway off before adding the integration, and leave it off. If both run, both acknowledge the heaters' reports and the heaters see two masters. The cloud app stops working while the gateway is off, and so does the cloud [`termoweb` integration](https://github.com/ha-termoweb/ha-termoweb) if you run it: disable it.
 
 ## 4. Add the integration
 

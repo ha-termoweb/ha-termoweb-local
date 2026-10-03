@@ -15,7 +15,7 @@ Settings -> Devices & services -> Termoweb Local -> **Configure**.
 
 ### Device id
 
-The default, `nanocul`, is fine for a new installation. If you are moving from the cloud `termoweb` integration and want unique ids shaped the same way, set it to the `dev_id` the cloud integration shows on its climate entities' attributes. Either way the two integrations never collide, because every id is namespaced under its own domain.
+The default, `nanocul`, is fine for a new installation. If you are moving from the cloud [`termoweb` integration](https://github.com/ha-termoweb/ha-termoweb) and want unique ids shaped the same way, set it to the `dev_id` the cloud integration shows on its climate entities' attributes. Either way the two integrations never collide, because every id is namespaced under its own domain.
 
 Your cloud `dev_id` identifies your account, so keep it out of anything you share ([privacy.md](privacy.md)). Change it only on a fresh setup: changing it later gives every entity a new unique id.
 
@@ -33,7 +33,7 @@ The scan only finds heaters already bonded to station `01`. An unpaired heater i
 ### Pairing a heater
 
 1. Press **Pair heater**. A notification says the window is open.
-2. Within the window (120 s by default), put the heater into pairing mode from its own panel, as its manual describes.
+2. Within the window (120 s by default), put the heater into pairing mode from its own panel, as its [manual](https://atc.ie/wp-content/uploads/Manual-atc-Sun-Ray-RF_v07.pdf) describes.
 3. The integration answers the heater's announcement with the lowest free id from 2 to 65, or the id it had before if this exact heater paired previously.
 4. The notification names the assigned id, and the heater's device and entities appear.
 

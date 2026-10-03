@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Before opening an issue, turn on debug logging and read the log. Remove your installation's identifiers from anything you paste ([privacy.md](privacy.md)): debug lines contain whole frames, heater identities included.
+Before [opening an issue](https://github.com/ha-termoweb/ha-termoweb-local/issues), turn on debug logging with the [logger integration](https://www.home-assistant.io/integrations/logger/) and read the log. Remove your installation's identifiers from anything you paste ([privacy.md](privacy.md)): debug lines contain whole frames, heater identities included.
 
 ```yaml
 # configuration.yaml
@@ -21,7 +21,7 @@ logger:
 
 - **The gateway is still on.** Power it off ([installation.md](installation.md#3-take-over-from-the-gateway)).
 - **The heaters are not bonded to this station.** Heaters that were never paired to a gateway, or were factory reset, are silent until paired ([configuration.md](configuration.md#pairing-a-heater)).
-- **Different network id.** In the debug log, received heater frames show `rx #N: class=... src=...`. If frames arrive but none is acknowledged and the scan finds nothing, your network's id may differ from the fixed `1B 30` ([installation.md](installation.md#network-id)). Please open an issue; that case is not supported yet.
+- **Different network id.** In the debug log, received heater frames show `rx #N: class=... src=...`. If frames arrive but none is acknowledged and the scan finds nothing, your network's id may differ from the fixed `1B 30` ([installation.md](installation.md#network-id)). Please [open an issue](https://github.com/ha-termoweb/ha-termoweb-local/issues); that case is not supported yet.
 - **Range.** Move the stick closer, or onto a machine nearer the heaters ([remote-stick.md](remote-stick.md)). The `rssi=` on each received line is the signal level; below about -90 dBm reception becomes unreliable.
 
 ## A heater is missing after a restart

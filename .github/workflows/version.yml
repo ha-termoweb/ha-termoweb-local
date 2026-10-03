@@ -18,12 +18,12 @@ jobs:
           fetch-depth: 0
 
       - name: Derived files match the version file
-        run: python3 scripts/version.py check
+        run: python3 .github/scripts/version.py check
 
       - name: A released version is never reused for different code
         if: github.event_name == 'pull_request'
         run: |
-          integration=$(python3 scripts/version.py get integration)
+          integration=$(python3 .github/scripts/version.py get integration)
           base=$(git show "origin/${{ github.base_ref }}:version" | sed -n 's/^integration=//p')
           if git rev-parse -q --verify "refs/tags/v$integration" >/dev/null && [ "$integration" != "$base" ]; then
             echo "::error file=version::integration $integration is already released; pick a new version"

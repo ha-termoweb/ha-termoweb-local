@@ -7,7 +7,7 @@ import re
 import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-_spec = importlib.util.spec_from_file_location("repo_version", ROOT / "scripts" / "version.py")
+_spec = importlib.util.spec_from_file_location("repo_version", ROOT / ".github" / "scripts" / "version.py")
 version = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(version)
 

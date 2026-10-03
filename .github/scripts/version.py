@@ -2,9 +2,9 @@
 """Read the repository's `version` file and keep everything that carries a
 version in step with it.
 
-    python3 scripts/version.py get integration    print one version
-    python3 scripts/version.py sync               rewrite the derived files
-    python3 scripts/version.py check              exit 1 if any derived file differs
+    python3 .github/scripts/version.py get integration    print one version
+    python3 .github/scripts/version.py sync               rewrite the derived files
+    python3 .github/scripts/version.py check              exit 1 if any derived file differs
 
 The firmware needs no derived file: its Makefile reads `version` at build
 time and passes the value to the compiler.
@@ -16,7 +16,7 @@ import pathlib
 import re
 import sys
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
+ROOT = pathlib.Path(__file__).resolve().parents[2]  # .github/scripts/ -> repository root
 VERSION_FILE = ROOT / "version"
 MANIFEST = ROOT / "custom_components" / "termoweb_local" / "manifest.json"
 PYPROJECT = ROOT / "pyproject.toml"
@@ -92,7 +92,7 @@ def main(argv: list[str]) -> int:
         stale = stale_files()
         for path in stale:
             print(f"::error file={path.relative_to(ROOT)}::out of step with the version file; "
-                  "run python3 scripts/version.py sync")
+                  "run python3 .github/scripts/version.py sync")
         return 1 if stale else 0
     print(__doc__, file=sys.stderr)
     return 2
