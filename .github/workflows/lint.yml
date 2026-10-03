@@ -15,6 +15,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       # Rules and exclusions come from [tool.ruff] in pyproject.toml.
-      - uses: astral-sh/ruff-action@v4
+      - uses: astral-sh/ruff-action@v4.1.0
         with:
           args: check
