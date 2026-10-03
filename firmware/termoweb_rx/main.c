@@ -40,7 +40,11 @@
 #include <util/delay.h>
 #include "cc1101.h"
 
-#define VERSION "3.5"
+/* Set by the Makefile from the repository's version file. */
+#ifndef FW_VERSION
+#error "FW_VERSION is not defined: build with the Makefile"
+#endif
+#define VERSION FW_VERSION
 
 /* Longest frame observed so far is a 99-byte gateway program write; 255 is
  * the hard ceiling (PKTLEN is one byte), so the buffer is sized for the

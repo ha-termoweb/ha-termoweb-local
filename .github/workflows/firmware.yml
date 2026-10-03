@@ -5,11 +5,13 @@ on:
     branches: [main]
     paths:
       - "firmware/**"
+      - "version"
       - "custom_components/termoweb_local/vendor/**"
       - ".github/workflows/firmware.yml"
   pull_request:
     paths:
       - "firmware/**"
+      - "version"
       - "custom_components/termoweb_local/vendor/**"
       - ".github/workflows/firmware.yml"
   workflow_dispatch:

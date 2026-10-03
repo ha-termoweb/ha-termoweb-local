@@ -1,44 +1,118 @@
 name: Release
 
+# Reads the version file on main. When it names an integration version that
+# has no tag yet, this tags the tip of main as v<integration> (and
+# firmware-v<firmware> when that firmware version is new too), then publishes
+# a GitHub release with the integration zip and the firmware hex.
+#
+# Tagging and releasing happen in this one workflow on purpose: a tag pushed
+# with the default GITHUB_TOKEN does not trigger other workflows.
+
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
+    paths: [version]
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
-  release:
+  plan:
     runs-on: ubuntu-latest
+    outputs:
+      integration: ${{ steps.read.outputs.integration }}
+      firmware: ${{ steps.read.outputs.firmware }}
+      release: ${{ steps.read.outputs.release }}
+      firmware_new: ${{ steps.read.outputs.firmware_new }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
-      - name: Tag must match manifest.json and pyproject.toml
+      - name: Read the version file and decide
+        id: read
         run: |
-          tag="${GITHUB_REF_NAME#v}"
-          manifest=$(python3 -c 'import json; print(json.load(open("custom_components/termoweb_local/manifest.json"))["version"])')
-          project=$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml","rb"))["project"]["version"])')
-          echo "tag=$tag manifest=$manifest pyproject=$project"
-          if [ "$tag" != "$manifest" ] || [ "$tag" != "$project" ]; then
-            echo "::error::tag v$tag does not match manifest.json ($manifest) and pyproject.toml ($project)"
-            exit 1
+          integration=$(python3 scripts/version.py get integration)
+          firmware=$(python3 scripts/version.py get firmware)
+          python3 scripts/version.py check
+          echo "integration=$integration" >> "$GITHUB_OUTPUT"
+          echo "firmware=$firmware" >> "$GITHUB_OUTPUT"
+
+          fw_new=true
+          if git rev-parse -q --verify "refs/tags/firmware-v$firmware" >/dev/null; then fw_new=false; fi
+          echo "firmware_new=$fw_new" >> "$GITHUB_OUTPUT"
+
+          if git rev-parse -q --verify "refs/tags/v$integration" >/dev/null; then
+            if [ "$fw_new" = true ]; then
+              echo "::error::firmware $firmware is new but integration $integration is already released; bump integration in the version file too"
+              exit 1
+            fi
+            echo "::notice::v$integration is already tagged; nothing to release"
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::will tag and release v$integration (firmware $firmware, new: $fw_new)"
+            echo "release=true" >> "$GITHUB_OUTPUT"
           fi
+
+  tests:
+    needs: plan
+    if: needs.plan.outputs.release == 'true'
+    uses: ./.github/workflows/tests.yml
+
+  release:
+    needs: [plan, tests]
+    if: needs.plan.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      INTEGRATION: ${{ needs.plan.outputs.integration }}
+      FIRMWARE: ${{ needs.plan.outputs.firmware }}
+    steps:
+      - uses: actions/checkout@v7
 
       - name: Build the firmware
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends gcc-avr avr-libc binutils-avr
           make -C firmware/termoweb_rx clean build PA=0xC0
-          cp firmware/termoweb_rx/termoweb_rx.hex "termoweb_rx-${GITHUB_REF_NAME}-paC0.hex"
+          python3 firmware/termoweb_rx/verify_ack.py
+          cp firmware/termoweb_rx/termoweb_rx.hex "termoweb_rx-${FIRMWARE}-paC0.hex"
 
       - name: Package the integration
         run: |
           cd custom_components/termoweb_local
           find . -name __pycache__ -prune -o -type f -print | sort | zip -q -@ "$GITHUB_WORKSPACE/termoweb_local.zip"
 
+      - name: Tag the tip of main
+        env:
+          FIRMWARE_NEW: ${{ needs.plan.outputs.firmware_new }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${INTEGRATION}" -m "Termoweb Local ${INTEGRATION} (firmware ${FIRMWARE})" "$GITHUB_SHA"
+          tags=("v${INTEGRATION}")
+          if [ "$FIRMWARE_NEW" = true ]; then
+            git tag -a "firmware-v${FIRMWARE}" -m "termoweb_rx ${FIRMWARE}" "$GITHUB_SHA"
+            tags+=("firmware-v${FIRMWARE}")
+          fi
+          git push origin "${tags[@]}"
+
       - uses: softprops/action-gh-release@v3
         with:
+          tag_name: v${{ env.INTEGRATION }}
+          name: Termoweb Local ${{ env.INTEGRATION }}
           generate_release_notes: true
+          body: |
+            Integration ${{ env.INTEGRATION }}, firmware termoweb_rx ${{ env.FIRMWARE }}.
+
+            `termoweb_rx-${{ env.FIRMWARE }}-paC0.hex` is built at PA 0xC0 (about +10 dBm). Flash it with
+            `avrdude -c arduino -p m328p -P /dev/ttyUSB0 -b 115200 -D -U flash:w:termoweb_rx-${{ env.FIRMWARE }}-paC0.hex:i`.
           files: |
             termoweb_local.zip
-            termoweb_rx-${{ github.ref_name }}-paC0.hex
+            termoweb_rx-${{ env.FIRMWARE }}-paC0.hex

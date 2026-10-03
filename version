@@ -1,0 +1,13 @@
+# Release versions: the single source of truth.
+#
+# integration  Home Assistant integration (manifest.json, pyproject.toml).
+#              Every release bumps it; the release tag is v<integration>.
+# firmware     termoweb_rx, compiled into the stick's banner by the Makefile.
+#              Bump it only when firmware/termoweb_rx changes, and bump
+#              integration in the same commit so the new firmware is released.
+#
+# After editing, run `python3 scripts/version.py sync` and commit the result.
+# Pushing the change to main tags the tip (v<integration>, firmware-v<firmware>)
+# and publishes the release.
+integration=0.1.1
+firmware=3.5

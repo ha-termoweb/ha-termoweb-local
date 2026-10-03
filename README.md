@@ -66,6 +66,19 @@ Heaters already bonded to the gateway are found by the integration's scan; other
 - Developed and tested against three heaters (one Sun Ray RF 1800 and two Sun Ray RF 750) on a single installation.
 - The CC1101's own LQI status byte reads 0 on every frame with this firmware, so link quality is reported from RSSI only. Frame integrity is checked by the host-side CRC.
 
-## Licence
+## Versions and releases
+
+The `version` file at the repository root is the single source of release versions:
+
+```
+integration=0.1.1
+firmware=3.5
+```
+
+- `integration` is the Home Assistant integration's version. `manifest.json` and `pyproject.toml` are derived from it with `python3 scripts/version.py sync`, and the Version workflow fails any change where they disagree.
+- `firmware` is termoweb_rx's version. The firmware Makefile reads it at build time and compiles it into the stick's banner (`# termoweb_rx 3.5 ...`), so the source carries no version of its own.
+
+To release, edit `version`, run `python3 scripts/version.py sync`, commit and push to `main`. The Release workflow then runs the tests, tags the tip of `main` as `v<integration>` (and `firmware-v<firmware>` when the firmware version is new), and publishes a GitHub release with the integration zip and the firmware hex. HACS offers the release to users. A firmware change needs an integration bump in the same commit, because releases are keyed on the integration version.
+
 
 Apache-2.0, see `LICENSE`.
