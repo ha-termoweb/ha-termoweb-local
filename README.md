@@ -58,7 +58,7 @@ hacs.json                           HACS metadata
 3. Settings -> Devices & services -> Add integration -> "Termoweb Local". Give it the stick's `/dev/serial/by-id/...` path, or a `socket://host:port` URL if the stick sits on another machine behind ser2net.
 4. Power the Termoweb gateway off. Only one station should answer the heaters, and only one process may hold the stick's serial port.
 
-Heaters already bonded to the gateway are found by the integration's scan; others are added with its Pair heater button. `custom_components/termoweb_local/README.md` describes the entities, services, schedule card and pairing.
+Heaters already bonded to the gateway are found by the integration's scan; others are added with its Pair heater button. The full walkthrough is [docs/installation.md](docs/installation.md); the entities, services and schedule card are in the [integration README](custom_components/termoweb_local/README.md).
 
 ## Known limitations
 
@@ -66,19 +66,12 @@ Heaters already bonded to the gateway are found by the integration's scan; other
 - Developed and tested against three heaters (one Sun Ray RF 1800 and two Sun Ray RF 750) on a single installation.
 - The CC1101's own LQI status byte reads 0 on every frame with this firmware, so link quality is reported from RSSI only. Frame integrity is checked by the host-side CRC.
 
-## Versions and releases
+## Documentation
 
-The `version` file at the repository root is the single source of release versions:
+[docs/](docs/README.md) covers installation, a remote stick over ser2net, configuration and pairing, the firmware, troubleshooting, keeping your data private, development, CI, releasing and the repository secrets.
 
-```
-integration=0.1.1
-firmware=3.5
-```
+Versions come from the [`version`](version) file at the root; see [docs/releasing.md](docs/releasing.md).
 
-- `integration` is the Home Assistant integration's version. `manifest.json` and `pyproject.toml` are derived from it with `python3 scripts/version.py sync`, and the Version workflow fails any change where they disagree.
-- `firmware` is termoweb_rx's version. The firmware Makefile reads it at build time and compiles it into the stick's banner (`# termoweb_rx 3.5 ...`), so the source carries no version of its own.
-
-To release, edit `version`, run `python3 scripts/version.py sync`, commit and push to `main`. The Release workflow then runs the tests, tags the tip of `main` as `v<integration>` (and `firmware-v<firmware>` when the firmware version is new), and publishes a GitHub release with the integration zip and the firmware hex. HACS offers the release to users. A firmware change needs an integration bump in the same commit, because releases are keyed on the integration version.
-
+## Licence
 
 Apache-2.0, see `LICENSE`.
