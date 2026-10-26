@@ -4,7 +4,6 @@ entry owns the single NanoCul client and Network for that entry's serial port.
 """
 from __future__ import annotations
 
-import json
 import logging
 from pathlib import Path
 
@@ -14,6 +13,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+from homeassistant.loader import async_get_integration
 
 from .const import (
     CLOUD_NODE_TYPE_HEATER,
@@ -56,10 +56,12 @@ _FRONTEND_URL_PATH = f"/{DOMAIN}_frontend"
 _FRONTEND_REGISTERED_KEY = "frontend_registered"
 
 
-def _integration_version() -> str:
-    manifest_path = Path(__file__).parent / "manifest.json"
-    with manifest_path.open(encoding="utf-8") as handle:
-        return json.load(handle)["version"]
+async def _async_integration_version(hass: HomeAssistant) -> str:
+    """The manifest version, from the loader's cached Integration rather than
+    re-reading manifest.json: opening the file here ran blocking I/O on the
+    event loop, which HA reports as a blocking call."""
+    integration = await async_get_integration(hass, DOMAIN)
+    return str(integration.version)
 
 
 async def _async_register_frontend(hass: HomeAssistant) -> None:
@@ -82,11 +84,12 @@ async def _async_register_frontend(hass: HomeAssistant) -> None:
     # The version query string busts HA's own frontend module cache
     # (plan's Risks section) whenever the JS file changes and this version
     # is bumped; it is not itself a cache-buster HA interprets specially.
-    js_url = f"{_FRONTEND_URL_PATH}/{_FRONTEND_JS_FILENAME}?v={_integration_version()}"
+    version = await _async_integration_version(hass)
+    js_url = f"{_FRONTEND_URL_PATH}/{_FRONTEND_JS_FILENAME}?v={version}"
     add_extra_js_url(hass, js_url, es5=False)
     # Same version query string as the module build above: both files come
     # from the same release, so one version bump busts the cache for both.
-    es5_js_url = f"{_FRONTEND_URL_PATH}/{_FRONTEND_ES5_JS_FILENAME}?v={_integration_version()}"
+    es5_js_url = f"{_FRONTEND_URL_PATH}/{_FRONTEND_ES5_JS_FILENAME}?v={version}"
     add_extra_js_url(hass, es5_js_url, es5=True)
     domain_data[_FRONTEND_REGISTERED_KEY] = True
 
