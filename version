@@ -9,5 +9,5 @@
 # After editing, run `python3 .github/scripts/version.py sync` and commit the result.
 # Pushing the change to main tags the tip (v<integration>, firmware-v<firmware>)
 # and publishes the release.
-integration=0.1.1
+integration=0.1.2
 firmware=3.5

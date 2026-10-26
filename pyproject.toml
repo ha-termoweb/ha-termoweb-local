@@ -1,6 +1,6 @@
 [project]
 name = "ha-termoweb-local"
-version = "0.1.1"
+version = "0.1.2"
 description = "Home Assistant integration for local, cloud-free control of Sun Ray RF heaters over a nanoCUL868 stick."
 requires-python = ">=3.14"
 license = "Apache-2.0"
