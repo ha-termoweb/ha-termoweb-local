@@ -203,6 +203,10 @@ class FakeCulTransport:
         self.read_timeout = read_timeout
         self.auto_reply_q = auto_reply_q
         self.status_reply_ids = status_reply_ids
+        # dst node ids that have gone silent: the stick still confirms the
+        # TX, but no ack and no application reply ever comes back, so every
+        # command to that node exhausts its retries (AckResult.ok False).
+        self.unresponsive_ids: set[int] = set()
         self.rx_queue: list[bytes] = []
         self.written: list[bytes] = []
         self.closed = False
@@ -270,6 +274,8 @@ class FakeCulTransport:
             if int(hexpart[:2], 16) == ACK_ON_AIR_CLASS:
                 return len(data)
             parsed = tf.parse_frame(air)
+            if parsed.dst in self.unresponsive_ids:
+                return len(data)
             ack_air = tf.build_ack(parsed.dst, parsed.src)
             self.rx_queue.append(
                 f"RX {micros + 1} -44.0 60 0 {ack_air.hex().upper()}\n".encode()

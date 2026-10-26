@@ -22,6 +22,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .devices import heater_device_info
 from .entity_ids import heater_entity_id, heater_unique_id
+from .errors import raise_not_confirmed
 from .coordinator import TermowebLocalCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -104,10 +105,12 @@ class TermowebLocalBoostSwitch(_RadioConfirmedToggleSwitch):
     _flag_attr = "boost"
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        await self.coordinator.async_start_boost(self._node_id)
+        if not await self.coordinator.async_start_boost(self._node_id):
+            raise_not_confirmed(_LOGGER, self._node_id, "boost on")
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        await self.coordinator.async_cancel_boost(self._node_id)
+        if not await self.coordinator.async_cancel_boost(self._node_id):
+            raise_not_confirmed(_LOGGER, self._node_id, "boost off")
 
 
 class TermowebLocalEasyModeSwitch(_RadioConfirmedToggleSwitch):
@@ -120,10 +123,12 @@ class TermowebLocalEasyModeSwitch(_RadioConfirmedToggleSwitch):
     _flag_attr = "easy"
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        await self.coordinator.async_set_easy_mode(self._node_id, True)
+        if not await self.coordinator.async_set_easy_mode(self._node_id, True):
+            raise_not_confirmed(_LOGGER, self._node_id, "easy_mode on")
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        await self.coordinator.async_set_easy_mode(self._node_id, False)
+        if not await self.coordinator.async_set_easy_mode(self._node_id, False):
+            raise_not_confirmed(_LOGGER, self._node_id, "easy_mode off")
 
 
 class TermowebLocalRunbackSwitch(_RadioConfirmedToggleSwitch):
@@ -139,10 +144,14 @@ class TermowebLocalRunbackSwitch(_RadioConfirmedToggleSwitch):
     _flag_attr = "runback"
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        await self.coordinator.async_set_runback(self._node_id, True)
+        if not await self.coordinator.async_set_runback(self._node_id, True):
+            raise_not_confirmed(_LOGGER, self._node_id, "runback on")
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        await self.coordinator.async_set_runback(self._node_id, False)
+        # False only when the D4 00 toggle itself was not confirmed; a failed
+        # restore after a confirmed toggle is reported through `restored`.
+        if not await self.coordinator.async_set_runback(self._node_id, False):
+            raise_not_confirmed(_LOGGER, self._node_id, "runback off")
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -170,10 +179,12 @@ class _AdvancedSetupFlagSwitch(_HeaterSwitchBase):
         return bool(self.coordinator.get_advanced_setup(self._node_id)[self._field])
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        await self.coordinator.async_write_advanced_setup(self._node_id, **{self._field: 1})
+        if not await self.coordinator.async_write_advanced_setup(self._node_id, **{self._field: 1}):
+            raise_not_confirmed(_LOGGER, self._node_id, f"{self._kind} on")
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        await self.coordinator.async_write_advanced_setup(self._node_id, **{self._field: 0})
+        if not await self.coordinator.async_write_advanced_setup(self._node_id, **{self._field: 0}):
+            raise_not_confirmed(_LOGGER, self._node_id, f"{self._kind} off")
 
 
 class TermowebLocalOpenWindowDetectionSwitch(_AdvancedSetupFlagSwitch):

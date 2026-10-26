@@ -19,6 +19,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .devices import heater_device_info
 from .entity_ids import heater_entity_id, heater_unique_id
+from .errors import raise_not_confirmed
 from .coordinator import TermowebLocalCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -88,7 +89,10 @@ class _AdvancedSetupFieldSelect(CoordinatorEntity[TermowebLocalCoordinator], Sel
 
     async def async_select_option(self, option: str) -> None:
         value = self._values_by_option[option]
-        await self.coordinator.async_write_advanced_setup(self._node_id, **{self._field: value})
+        if not await self.coordinator.async_write_advanced_setup(
+            self._node_id, **{self._field: value}
+        ):
+            raise_not_confirmed(_LOGGER, self._node_id, f"{self._field} {option}")
 
 
 class TermowebLocalControlModeSelect(_AdvancedSetupFieldSelect):

@@ -91,6 +91,32 @@ async def test_set_schedule_round_trip(hass, monkeypatch, enable_custom_integrat
     assert state.attributes["prog"] == [value for value in prog for _ in range(2)]
 
 
+async def test_set_schedule_unconfirmed_write_raises_and_is_not_marked_written(
+    hass, monkeypatch, enable_custom_integrations
+):
+    """A heater that never acks the B2 write (no ack, so no B3 55 either)
+    must fail the service call: the schedule card clears its dirty state on
+    success, so a silent return here would let the read-back quietly revert
+    the user's edits. The schedule sensor's `source` must not claim the
+    write landed, and `prog` keeps what the heater last reported."""
+    transport = FakeCulTransport()
+    await setup_entry(hass, monkeypatch, transport)
+    prog_before = hass.states.get("climate.master_bedroom_heater").attributes["prog"]
+    transport.unresponsive_ids.add(0x04)
+
+    with pytest.raises(HomeAssistantError, match="did not confirm the set_schedule"):
+        await hass.services.async_call(
+            DOMAIN,
+            "set_schedule",
+            {"entity_id": "climate.master_bedroom_heater", "prog": [i % 3 for i in range(168)]},
+            blocking=True,
+        )
+    await hass.async_block_till_done()
+
+    assert hass.states.get("sensor.master_bedroom_schedule").attributes["source"] != "written"
+    assert hass.states.get("climate.master_bedroom_heater").attributes["prog"] == prog_before
+
+
 async def test_set_schedule_rejects_wrong_length(hass, monkeypatch, enable_custom_integrations):
     transport = FakeCulTransport()
     await setup_entry(hass, monkeypatch, transport)
@@ -274,6 +300,65 @@ async def test_set_preset_temperatures_partial_field_keeps_the_others(
 
     state = hass.states.get("climate.master_bedroom_heater")
     assert state.attributes["ptemp"] == [7.0, 18.5, 23.5]
+
+
+async def test_set_preset_temperatures_unconfirmed_write_raises_and_keeps_old_values(
+    hass, monkeypatch, enable_custom_integrations
+):
+    """The schedule card's own preset editor calls this service; a heater
+    that never acks the B6 write must fail the call, and `ptemp` must keep
+    the last confirmed values rather than an optimistic copy of the request."""
+    transport = FakeCulTransport()
+    await setup_entry(hass, monkeypatch, transport)
+    assert hass.states.get("climate.master_bedroom_heater").attributes["ptemp"] == [7.0, 23.0, 23.5]
+    transport.unresponsive_ids.add(0x04)
+
+    with pytest.raises(HomeAssistantError, match="did not confirm the set_preset_temperatures"):
+        await hass.services.async_call(
+            DOMAIN,
+            "set_preset_temperatures",
+            {"entity_id": "climate.master_bedroom_heater", "ptemp": [7.0, 18.5, 21.0]},
+            blocking=True,
+        )
+    await hass.async_block_till_done()
+
+    assert hass.states.get("climate.master_bedroom_heater").attributes["ptemp"] == [7.0, 23.0, 23.5]
+
+
+@pytest.mark.parametrize(
+    ("domain", "service", "entity_id", "data"),
+    [
+        (DOMAIN, "start_boost", "climate.master_bedroom_heater", {"minutes": 60}),
+        (DOMAIN, "cancel_boost", "climate.master_bedroom_heater", {}),
+        (DOMAIN, "sync_clock", "climate.master_bedroom_heater", {}),
+        ("climate", "set_temperature", "climate.master_bedroom_heater", {"temperature": 21.5}),
+        ("climate", "set_hvac_mode", "climate.master_bedroom_heater", {"hvac_mode": "auto"}),
+        ("climate", "set_preset_mode", "climate.master_bedroom_heater", {"preset_mode": "none"}),
+        ("climate", "turn_on", "climate.master_bedroom_heater", {}),
+        ("switch", "turn_on", "switch.master_bedroom_heater_boost", {}),
+        ("switch", "turn_on", "switch.master_bedroom_heater_easy_mode", {}),
+        ("switch", "turn_on", "switch.master_bedroom_heater_runback", {}),
+        ("switch", "turn_on", "switch.master_bedroom_heater_open_window_detection", {}),
+        ("lock", "lock", "lock.master_bedroom_heater_child_lock", {}),
+        ("select", "select_option", "select.master_bedroom_heater_units", {"option": "F"}),
+        ("number", "set_value", "number.master_bedroom_heater_temperature_offset", {"value": 1.0}),
+        ("button", "press", "button.master_bedroom_heater_flash_display", {}),
+    ],
+)
+async def test_unconfirmed_write_commands_raise(
+    hass, monkeypatch, enable_custom_integrations, domain, service, entity_id, data
+):
+    """Every backed write whose coordinator call returns False (here: the
+    heater never acks) must fail the service call with HomeAssistantError
+    instead of returning as if the change had landed."""
+    transport = FakeCulTransport()
+    await setup_entry(hass, monkeypatch, transport)
+    transport.unresponsive_ids.add(0x04)
+
+    with pytest.raises(HomeAssistantError, match="did not confirm"):
+        await hass.services.async_call(
+            domain, service, {"entity_id": entity_id, **data}, blocking=True
+        )
 
 
 @pytest.mark.parametrize(

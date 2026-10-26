@@ -15,6 +15,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .devices import gateway_device_info, heater_device_info
 from .entity_ids import gateway_entity_id, gateway_unique_id, heater_entity_id, heater_unique_id
+from .errors import raise_not_confirmed
 from .coordinator import TermowebLocalCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -62,7 +63,8 @@ class TermowebLocalFlashDisplayButton(
         )
 
     async def async_press(self) -> None:
-        await self.coordinator.async_flash_display(self._node_id)
+        if not await self.coordinator.async_flash_display(self._node_id):
+            raise_not_confirmed(_LOGGER, self._node_id, "flash_display")
 
 
 class TermowebLocalForceRefreshButton(

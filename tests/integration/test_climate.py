@@ -2,8 +2,10 @@
 termoweb_frame worked values (docs/90-phase3-plan.md P4 verification line)."""
 import logging
 
+import pytest
 from homeassistant.components.climate import HVACAction, HVACMode, PRESET_NONE
 from homeassistant.const import ATTR_TEMPERATURE
+from homeassistant.exceptions import HomeAssistantError
 
 from termoweb_local import frame as tf
 
@@ -554,12 +556,13 @@ async def test_failed_set_temperature_does_not_strand_optimistic_state(
 
     monkeypatch.setattr(coordinator._nanocul, "send_frame", _refuse)
 
-    await hass.services.async_call(
-        "climate",
-        "set_temperature",
-        {"entity_id": "climate.master_bedroom_heater", ATTR_TEMPERATURE: 25.5},
-        blocking=True,
-    )
+    with pytest.raises(HomeAssistantError, match="did not confirm"):
+        await hass.services.async_call(
+            "climate",
+            "set_temperature",
+            {"entity_id": "climate.master_bedroom_heater", ATTR_TEMPERATURE: 25.5},
+            blocking=True,
+        )
 
     state = hass.states.get("climate.master_bedroom_heater")
     assert state.attributes[ATTR_TEMPERATURE] == 25.0

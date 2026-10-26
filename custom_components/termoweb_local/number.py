@@ -24,7 +24,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .devices import heater_device_info
 from .entity_ids import heater_entity_id, heater_unique_id
-from .errors import raise_not_supported
+from .errors import raise_not_confirmed, raise_not_supported
 from .coordinator import TermowebLocalCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -114,6 +114,7 @@ class TermowebLocalTemperatureOffsetNumber(CoordinatorEntity[TermowebLocalCoordi
 
     async def async_set_native_value(self, value: float) -> None:
         offset_tenths = round(value * 10)
-        await self.coordinator.async_write_advanced_setup(
+        if not await self.coordinator.async_write_advanced_setup(
             self._node_id, offset_tenths=offset_tenths
-        )
+        ):
+            raise_not_confirmed(_LOGGER, self._node_id, f"temperature_offset {value}")

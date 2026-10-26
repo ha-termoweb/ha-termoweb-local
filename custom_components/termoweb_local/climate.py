@@ -51,7 +51,7 @@ from termoweb_local.network import (
 
 from .devices import heater_device_info
 from .entity_ids import heater_entity_id, heater_unique_id
-from .errors import raise_not_applicable
+from .errors import raise_not_applicable, raise_not_confirmed
 from .const import (
     ATTR_COLD,
     ATTR_DAY,
@@ -493,12 +493,8 @@ class TermowebLocalClimate(CoordinatorEntity[TermowebLocalCoordinator], ClimateE
                 optimistic["hvac_mode"] = requested_hvac_mode
             self._set_optimistic(**optimistic)
         else:
-            _LOGGER.warning(
-                "node %02x rejected set_temperature %.1fC; entity keeps its last "
-                "confirmed value",
-                self._node_id, temperature,
-            )
             self._clear_optimistic()
+            raise_not_confirmed(_LOGGER, self._node_id, f"set_temperature {temperature:.1f}C")
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         mode = _HA_TO_NETWORK_MODE.get(hvac_mode)
@@ -511,12 +507,8 @@ class TermowebLocalClimate(CoordinatorEntity[TermowebLocalCoordinator], ClimateE
             # follows hvac_mode back to none here too.
             self._set_optimistic(hvac_mode=hvac_mode, preset_mode=PRESET_NONE)
         else:
-            _LOGGER.warning(
-                "node %02x rejected set_hvac_mode %s; entity keeps its last "
-                "confirmed value",
-                self._node_id, hvac_mode,
-            )
             self._clear_optimistic()
+            raise_not_confirmed(_LOGGER, self._node_id, f"set_hvac_mode {hvac_mode}")
 
     async def async_turn_off(self) -> None:
         """Turn the heater off (hvac_mode off)."""
@@ -547,18 +539,15 @@ class TermowebLocalClimate(CoordinatorEntity[TermowebLocalCoordinator], ClimateE
         else:
             raise ValueError(f"unsupported preset_mode {preset_mode!r}")
         if not ok:
-            _LOGGER.warning(
-                "node %02x rejected set_preset_mode %s; entity keeps its last "
-                "confirmed value",
-                self._node_id, preset_mode,
-            )
             self._clear_optimistic()
+            raise_not_confirmed(_LOGGER, self._node_id, f"set_preset_mode {preset_mode}")
 
     async def async_poll_now(self) -> None:
         await self.coordinator.async_poll_now(self._node_id)
 
     async def async_sync_clock(self) -> None:
-        await self.coordinator.async_sync_clock_one(self._node_id)
+        if not await self.coordinator.async_sync_clock_one(self._node_id):
+            raise_not_confirmed(_LOGGER, self._node_id, "sync_clock")
 
     # ---- docs/45-cloud-integration-api.md section 3 services ----
 
@@ -585,7 +574,12 @@ class TermowebLocalClimate(CoordinatorEntity[TermowebLocalCoordinator], ClimateE
             prog[day * slots_per_day : (day + 1) * slots_per_day]
             for day in range(DAYS_PER_WEEK)
         ]
-        await self.coordinator.async_set_schedule(self._node_id, week_slots)
+        ok = await self.coordinator.async_set_schedule(self._node_id, week_slots)
+        if not ok:
+            # Coordinator.async_set_schedule's own read-back has already left
+            # `prog` showing what the heater really holds, tagged "read";
+            # marking it "written" here would claim a write that never landed.
+            raise_not_confirmed(_LOGGER, self._node_id, "set_schedule")
         self.coordinator.network.mark_program_written(self._node_id)
         # async_set_schedule's own listener push (above) already happened
         # with "read" as the not-yet-corrected source; push again now so the
@@ -619,12 +613,11 @@ class TermowebLocalClimate(CoordinatorEntity[TermowebLocalCoordinator], ClimateE
         if ok:
             self._set_optimistic(ptemp=[cold, night, day])
         else:
-            _LOGGER.warning(
-                "node %02x rejected set_preset_temperatures %.1f/%.1f/%.1fC; "
-                "entity keeps its last confirmed value",
-                self._node_id, cold, night, day,
-            )
             self._clear_optimistic()
+            raise_not_confirmed(
+                _LOGGER, self._node_id,
+                f"set_preset_temperatures {cold:.1f}/{night:.1f}/{day:.1f}C",
+            )
 
     async def async_set_acm_preset(self, **kwargs: Any) -> None:
         raise_not_applicable(_LOGGER, f"set_acm_preset on node {self._node_id:02x}")
@@ -637,19 +630,11 @@ class TermowebLocalClimate(CoordinatorEntity[TermowebLocalCoordinator], ClimateE
         payload value (docs/captures/2026-09-13-x19/notes.md)."""
         ok = await self.coordinator.async_start_boost(self._node_id)
         if not ok:
-            _LOGGER.warning(
-                "node %02x rejected start_boost; entity keeps its last "
-                "confirmed value",
-                self._node_id,
-            )
+            raise_not_confirmed(_LOGGER, self._node_id, "start_boost")
 
     async def async_cancel_boost(self, **kwargs: Any) -> None:
         """D2 00 (2026-09-13 X-19 proof): backed now that a radio frame has
         been captured for it."""
         ok = await self.coordinator.async_cancel_boost(self._node_id)
         if not ok:
-            _LOGGER.warning(
-                "node %02x rejected cancel_boost; entity keeps its last "
-                "confirmed value",
-                self._node_id,
-            )
+            raise_not_confirmed(_LOGGER, self._node_id, "cancel_boost")

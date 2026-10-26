@@ -3,6 +3,8 @@ PROTOCOL.md 5.6), backed now; docs/91-p4-parity-plan.md P4a listed it as a
 placeholder pending exactly this capture."""
 from __future__ import annotations
 
+import logging
+
 from homeassistant.components.lock import LockEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -10,7 +12,10 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .devices import heater_device_info
 from .entity_ids import heater_entity_id, heater_unique_id
+from .errors import raise_not_confirmed
 from .coordinator import TermowebLocalCoordinator
+
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
@@ -59,7 +64,9 @@ class TermowebLocalChildLockLock(CoordinatorEntity[TermowebLocalCoordinator], Lo
         return None if snap is None else snap.locked
 
     async def async_lock(self, **kwargs) -> None:
-        await self.coordinator.async_set_child_lock(self._node_id, True)
+        if not await self.coordinator.async_set_child_lock(self._node_id, True):
+            raise_not_confirmed(_LOGGER, self._node_id, "child_lock on")
 
     async def async_unlock(self, **kwargs) -> None:
-        await self.coordinator.async_set_child_lock(self._node_id, False)
+        if not await self.coordinator.async_set_child_lock(self._node_id, False):
+            raise_not_confirmed(_LOGGER, self._node_id, "child_lock off")

@@ -135,6 +135,13 @@ ERROR_NOT_APPLICABLE = (
     "not applicable to the local integration (cloud-only or accumulator-only "
     "feature), see docs/91-p4-parity-plan.md"
 )
+# A backed command the heater never acknowledged (no ack within the retries,
+# or the executor call timed out): the service call must fail loudly rather
+# than report success for a change that may never have landed.
+ERROR_NOT_CONFIRMED = (
+    "heater {node_id:02x} did not confirm the {action} command (no "
+    "acknowledgement within the timeout); the change may not have been applied"
+)
 
 # docs/45-cloud-integration-api.md unique id shape: termoweb:<dev_id>:<node_type>:
 # <addr>:<entity_kind>; the local integration keeps the same shape with only the
