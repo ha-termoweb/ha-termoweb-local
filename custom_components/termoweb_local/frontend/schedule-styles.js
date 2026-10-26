@@ -37,7 +37,11 @@ export const SCHEDULE_CARD_STYLES = `
     font-size: 0.85em; color: var(--secondary-text-color); white-space: nowrap; position: sticky; left: 0;
     background: var(--card-background-color); }
   .cell { display: table-cell; width: 14px; height: 22px; min-width: 14px; cursor: pointer;
-    border-radius: 2px; border: 1px solid var(--divider-color); touch-action: none; pointer-events: auto; }
+    border-radius: 2px; border: 1px solid var(--divider-color); touch-action: pan-x pan-y; pointer-events: auto; }
+  .grid.paint-mode .cell { touch-action: none; }
+  .paint-toggle { font-size: 0.8em; padding: 4px 10px; border-radius: 4px; cursor: pointer;
+    border: 1px solid var(--divider-color); background: none; color: var(--primary-text-color); }
+  .paint-toggle.active { background: var(--primary-color); color: var(--text-primary-color, #fff); border-color: var(--primary-color); }
   .cell.unset { background-image: repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(0,0,0,0.15) 3px, rgba(0,0,0,0.15) 6px); }
   .cell:focus { outline: 2px solid var(--primary-color); outline-offset: -2px; }
   .row-actions { display: table-cell; padding-left: 8px; vertical-align: middle; }

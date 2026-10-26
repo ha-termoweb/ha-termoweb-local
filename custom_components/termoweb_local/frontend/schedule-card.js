@@ -26,6 +26,21 @@ import {
 const STALE_NOTE_TEXT =
   "The heater's schedule changed underneath your unsaved edits. Revert to load the latest, or Save to overwrite it.";
 
+const UNSET_NOTE_TEXT = "Some slots are unset (hatched); set every slot before saving.";
+
+// How far a touch may wander between pointerdown and pointerup and still
+// count as a tap rather than the start of a swipe.
+const TAP_SLOP_PX = 10;
+
+function hasCoarsePointer() {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    (window.matchMedia("(pointer: coarse)").matches ||
+      window.matchMedia("(any-pointer: coarse)").matches)
+  );
+}
+
 function isClimateEntityId(id) {
   return typeof id === "string" && id.startsWith("climate.");
 }
@@ -109,15 +124,32 @@ class TermowebLocalScheduleCard extends HTMLElement {
     }
     this._buildSkeleton();
     if (!this._docPointerUpBound) {
-      // Bound once at the document level: a drag can end with the pointer
+      // Bound at the document level: a drag can end with the pointer
       // released outside the grid (or outside the card entirely), and a
       // listener scoped to the grid container alone would never see that.
+      // Removed again in disconnectedCallback so a card dropped from the
+      // dashboard does not stay reachable from `document`.
       this._docPointerUpBound = true;
-      const stopPaint = () => this._stopPainting();
-      document.addEventListener("pointerup", stopPaint);
-      document.addEventListener("pointercancel", stopPaint);
+      if (!this._docStopPaint) {
+        this._docStopPaint = () => {
+          this._pendingTap = null;
+          this._stopPainting();
+        };
+      }
+      document.addEventListener("pointerup", this._docStopPaint);
+      document.addEventListener("pointercancel", this._docStopPaint);
     }
     this._render();
+  }
+
+  disconnectedCallback() {
+    if (this._docPointerUpBound && this._docStopPaint) {
+      document.removeEventListener("pointerup", this._docStopPaint);
+      document.removeEventListener("pointercancel", this._docStopPaint);
+    }
+    this._docPointerUpBound = false;
+    this._pendingTap = null;
+    this._stopPainting();
   }
 
   _syncFromHass() {
@@ -207,9 +239,14 @@ class TermowebLocalScheduleCard extends HTMLElement {
 
   // Used for the non-grid states (no entity, no hass yet, missing entity,
   // no schedule data). None of these have a grid-scroll to lose scroll
-  // position on, so a plain innerHTML swap is fine here.
+  // position on, so replacing the content wholesale is fine here. The text
+  // can carry the configured entity id, so it goes in as textContent, never
+  // as markup.
   _renderPlaceholder(text, kind = "note") {
-    this._content.innerHTML = `<div class="${kind}">${text}</div>`;
+    const el = document.createElement("div");
+    el.className = kind;
+    el.textContent = text;
+    this._content.replaceChildren(el);
     this._renderedSlotsPerDay = null;
     this._gridEl = null;
   }
@@ -233,6 +270,20 @@ class TermowebLocalScheduleCard extends HTMLElement {
     titleEl.className = "title";
     titleEl.textContent = title;
     header.appendChild(titleEl);
+
+    // Touch devices only: a finger drag has to choose between scrolling the
+    // wide grid and painting cells, so painting is an explicit mode there.
+    // Mouse and pen always drag-paint and never need the toggle.
+    const paintBtn = document.createElement("button");
+    paintBtn.type = "button";
+    paintBtn.className = "paint-toggle";
+    paintBtn.textContent = "Paint";
+    paintBtn.title = "Drag across cells to paint them instead of scrolling";
+    paintBtn.hidden = !hasCoarsePointer();
+    paintBtn.addEventListener("click", () => this._setPaintMode(!this._paintMode));
+    header.appendChild(paintBtn);
+    this._paintBtnEl = paintBtn;
+
     this._content.appendChild(header);
     this._titleEl = titleEl;
 
@@ -458,8 +509,13 @@ class TermowebLocalScheduleCard extends HTMLElement {
     // just entered" is read from pointermove (which does bubble) instead.
     grid.addEventListener("pointerdown", (ev) => this._onCellPointerDown(ev, hoursPerSlot));
     grid.addEventListener("pointermove", (ev) => this._onCellPointerMove(ev, hoursPerSlot));
-    grid.addEventListener("pointerup", () => this._stopPainting());
-    grid.addEventListener("pointercancel", () => this._stopPainting());
+    grid.addEventListener("pointerup", (ev) => this._onCellPointerUp(ev, hoursPerSlot));
+    grid.addEventListener("pointercancel", () => {
+      // The browser took the gesture over as a scroll: whatever the finger
+      // started on, it was not a tap.
+      this._pendingTap = null;
+      this._stopPainting();
+    });
     grid.addEventListener("keydown", (ev) => this._onCellKeyDown(ev, hoursPerSlot));
 
     scroll.appendChild(grid);
@@ -499,7 +555,15 @@ class TermowebLocalScheduleCard extends HTMLElement {
 
     this._content.appendChild(actionsRow);
 
+    const unsetNote = document.createElement("div");
+    unsetNote.className = "note unset-note";
+    unsetNote.textContent = UNSET_NOTE_TEXT;
+    unsetNote.hidden = true;
+    this._content.appendChild(unsetNote);
+    this._unsetNoteEl = unsetNote;
+
     this._gridEl = grid;
+    this._patchPaintMode();
     this._renderedSlotsPerDay = slotsPerDay;
     this._domGrid = this._grid.slice();
     this._legendPtemp = this._ptemp ? this._ptemp.slice() : null;
@@ -721,24 +785,83 @@ class TermowebLocalScheduleCard extends HTMLElement {
     return next;
   }
 
+  // The grid cell under the pointer right now. ev.target is not enough: a
+  // touch pointer is implicitly captured by the element it went down on, so
+  // every later pointermove keeps reporting that first cell as its target.
+  _cellAt(ev) {
+    const root = this.shadowRoot;
+    const hit =
+      root && typeof root.elementFromPoint === "function"
+        ? root.elementFromPoint(ev.clientX, ev.clientY)
+        : ev.target;
+    const cell = hit && typeof hit.closest === "function" ? hit.closest(".cell") : null;
+    return cell && this._gridEl && this._gridEl.contains(cell) ? cell : null;
+  }
+
+  _setPaintMode(on) {
+    this._paintMode = !!on;
+    this._pendingTap = null;
+    this._stopPainting();
+    this._patchPaintMode();
+  }
+
+  _patchPaintMode() {
+    const on = !!this._paintMode;
+    if (this._gridEl) this._gridEl.classList.toggle("paint-mode", on);
+    if (this._paintBtnEl) {
+      this._paintBtnEl.classList.toggle("active", on);
+      this._paintBtnEl.setAttribute("aria-pressed", on ? "true" : "false");
+    }
+  }
+
   _onCellPointerDown(ev, hoursPerSlot) {
     const cell = ev.target.closest(".cell");
     if (!cell) return;
-    ev.preventDefault();
     const idx = Number(cell.dataset.idx);
+    if (ev.pointerType === "touch" && !this._paintMode) {
+      // Scroll mode: the finger may be starting a swipe, so nothing changes
+      // until pointerup shows it was a tap. preventDefault is left alone so
+      // the browser can still pan the grid.
+      this._pendingTap = { pointerId: ev.pointerId, idx, x: ev.clientX, y: ev.clientY };
+      return;
+    }
+    ev.preventDefault();
+    if (typeof cell.hasPointerCapture === "function" && cell.hasPointerCapture(ev.pointerId)) {
+      cell.releasePointerCapture(ev.pointerId);
+    }
     this._painting = true;
     this._lastPaintedIdx = idx;
     this._paintValue = this._cycleCell(idx, hoursPerSlot);
   }
 
   _onCellPointerMove(ev, hoursPerSlot) {
+    const tap = this._pendingTap;
+    if (tap && tap.pointerId === ev.pointerId) {
+      if (Math.hypot(ev.clientX - tap.x, ev.clientY - tap.y) > TAP_SLOP_PX) {
+        this._pendingTap = null;
+      }
+      return;
+    }
     if (!this._painting) return;
-    const cell = ev.target.closest(".cell");
+    const cell = this._cellAt(ev);
     if (!cell) return;
     const idx = Number(cell.dataset.idx);
     if (idx === this._lastPaintedIdx) return;
     this._lastPaintedIdx = idx;
     this._setCellValue(idx, this._paintValue, hoursPerSlot);
+  }
+
+  _onCellPointerUp(ev, hoursPerSlot) {
+    const tap = this._pendingTap;
+    this._pendingTap = null;
+    if (
+      tap &&
+      tap.pointerId === ev.pointerId &&
+      Math.hypot(ev.clientX - tap.x, ev.clientY - tap.y) <= TAP_SLOP_PX
+    ) {
+      this._cycleCell(tap.idx, hoursPerSlot);
+    }
+    this._stopPainting();
   }
 
   _stopPainting() {
@@ -766,6 +889,7 @@ class TermowebLocalScheduleCard extends HTMLElement {
     const hasUnset = this._grid.some((v) => v === null || v === undefined);
     if (this._saveBtnEl) this._saveBtnEl.disabled = this._saving || hasUnset || !this._dirty;
     if (this._revertBtnEl) this._revertBtnEl.disabled = this._saving || !this._dirty;
+    if (this._unsetNoteEl) this._unsetNoteEl.hidden = !hasUnset;
   }
 
   _updateSaveButtonLabel() {
