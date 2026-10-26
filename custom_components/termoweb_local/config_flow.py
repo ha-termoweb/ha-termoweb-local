@@ -241,8 +241,13 @@ class TermowebLocalOptionsFlow(OptionsFlow):
                 errors[CONF_PAIR_HEATER_SECONDS] = "invalid_pair_seconds"
 
             if not errors:
+                # Start from every option already stored, then overlay only
+                # what this form edits: anything the coordinator persists on
+                # its own (heater_advanced_setup, and any key added later)
+                # survives a save instead of being dropped by omission.
                 return self.async_create_entry(
                     data={
+                        **self.config_entry.options,
                         CONF_HEATERS: current_heaters,
                         CONF_HEATER_IDENTITIES: current_identities,
                         CONF_POLL_INTERVAL: poll_interval,

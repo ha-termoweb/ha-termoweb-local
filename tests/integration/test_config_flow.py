@@ -199,6 +199,42 @@ async def test_options_flow_heaters_and_identities_survive_an_unrelated_save(
     assert {h["id"] for h in entry.options[CONF_HEATERS]} == {0x02, 0x04, 0x05}
 
 
+async def test_options_flow_keeps_heater_advanced_setup_on_save(
+    hass, monkeypatch, enable_custom_integrations
+):
+    """heater_advanced_setup is persisted by the coordinator itself
+    (async_write_advanced_setup), never edited by this form; saving the
+    options form must carry it through unchanged rather than wiping every
+    heater's last accepted C4 record."""
+    from custom_components.termoweb_local.const import CONF_HEATER_ADVANCED_SETUP
+
+    record = {
+        "control_mode": 0, "units": 1, "offset_tenths": 5, "away_mode": 0,
+        "away_offset": 0, "modified_auto_span": 0, "window_mode": 1, "true_radiant": 0,
+    }
+    transport = FakeCulTransport()
+    entry = await setup_entry(
+        hass, monkeypatch, transport, options={CONF_HEATER_ADVANCED_SETUP: {"4": record}}
+    )
+    assert entry.options[CONF_HEATER_ADVANCED_SETUP] == {"4": record}
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            CONF_POLL_INTERVAL: 600,
+            CONF_DEV_ID: DEFAULT_DEV_ID,
+            CONF_PAIR_HEATER_SECONDS: DEFAULT_PAIR_HEATER_SECONDS,
+        },
+    )
+    await hass.async_block_till_done()
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert entry.options[CONF_POLL_INTERVAL] == 600
+    assert entry.options[CONF_HEATER_ADVANCED_SETUP] == {"4": record}
+    assert entry.runtime_data.get_advanced_setup(0x04)["offset_tenths"] == 5
+
+
 async def test_options_flow_sets_pair_heater_seconds(hass, monkeypatch, enable_custom_integrations):
     """CONF_PAIR_HEATER_SECONDS is now a persisted option (owner direction
     2026-09-06 task 3), the window length the "Pair heater" button opens
